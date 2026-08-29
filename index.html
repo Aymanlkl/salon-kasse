@@ -35,7 +35,7 @@
   --surface-2:#F5F7F4;
   --ink:#131C1A;
   --ink-2:#4C5A56;
-  --ink-3:#7E8C87;
+  --ink-3:#5F6D68;
   --line:#E1E5E1;
   --line-2:#CFD5D0;
   --brass:#8A6116;
@@ -82,7 +82,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
 /* ---------- top bar ---------- */
 #topbar{
-  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  padding:calc(env(safe-area-inset-top) + 8px) 16px 8px;
   background:var(--ground);border-bottom:1px solid var(--line);
   display:flex;align-items:center;gap:10px;min-height:56px;
 }
@@ -90,7 +90,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .tb-sub{font-size:12px;color:var(--ink-3);font-weight:500;margin-top:1px}
 .tb-grow{flex:1;min-width:0}
 .daynav{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px}
-.daynav button{width:32px;height:30px;display:grid;place-items:center;border-radius:999px;color:var(--ink-2)}
+.daynav button{width:44px;height:44px;display:grid;place-items:center;border-radius:999px;color:var(--ink-2)}
 .daynav button:active{background:var(--surface-2)}
 .daynav .today{width:auto;padding:0 11px;font-size:12px;font-weight:600;font-stretch:90%;letter-spacing:.02em;color:var(--brass)}
 .iconbtn{width:36px;height:36px;border-radius:999px;display:grid;place-items:center;color:var(--ink-2);background:var(--surface);border:1px solid var(--line)}
@@ -118,7 +118,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .card-pad{padding:16px}
 .sec{display:flex;flex-direction:column;gap:8px}
 .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px}
-.sec-act{font-size:12.5px;font-weight:600;color:var(--brass)}
+.sec-act{
+  font-size:12.5px;font-weight:600;color:var(--brass);
+  display:inline-block;padding:13px 10px;margin:-13px -10px;border-radius:9px;
+}
+.sec-act:active{background:var(--brass-soft)}
 
 /* hero */
 .hero{padding:16px 16px 14px}
@@ -172,6 +176,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .pill.me{background:var(--brass-soft);color:var(--brass)}
 .pill.neutral{background:var(--surface-2);color:var(--ink-3);border:1px solid var(--line)}
 .pill.closed{background:var(--pos-soft);color:var(--pos)}
+.pill.act-chip{background:var(--brass);color:var(--on-brass);padding:5px 12px}
 
 /* segmented */
 .seg{display:flex;gap:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:3px}
@@ -200,6 +205,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .btn.primary{background:var(--brass);color:var(--on-brass);border-color:transparent}
 .btn.ghost{background:transparent;border-color:var(--line)}
 .btn.danger{color:var(--open);border-color:var(--open-soft);background:var(--open-soft)}
+.btn.danger.apart{margin-top:26px;position:relative}
+.btn.danger.apart::before{
+  content:'';position:absolute;left:0;right:0;top:-14px;height:1px;background:var(--line);
+}
 .btn.block{width:100%}
 .btn[disabled]{opacity:.45}
 
@@ -220,7 +229,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 #tabbar button{
   display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 7px;color:var(--ink-3);
 }
-#tabbar button .lbl{font-size:10px;font-weight:600;font-stretch:90%;letter-spacing:.02em}
+#tabbar button .lbl{font-size:11px;font-weight:600;font-stretch:92%;letter-spacing:.02em}
 #tabbar button[aria-current="page"]{color:var(--brass)}
 #tabbar svg{width:22px;height:22px}
 
@@ -274,7 +283,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   font-size:clamp(40px,12vw,48px);font-weight:700;font-stretch:115%;
   font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1;
 }
-.amt-display .n.zero{color:var(--ink-3)}
+.amt-display .n.zero{color:#9AA6A2}
 .amt-display .cur{font-size:22px;font-weight:600;color:var(--ink-3)}
 .caret{display:inline-block;width:2px;height:.82em;background:var(--brass);margin-left:2px;border-radius:2px;animation:blink 1.1s steps(1) infinite;vertical-align:baseline}
 @keyframes blink{0%,50%{opacity:1}50.01%,100%{opacity:0}}
@@ -305,7 +314,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .pay-btn.b{background:var(--bar);color:var(--on-brass)}
 .pay-btn.k{background:var(--card);color:#fff}
 .pay-btn:active{transform:scale(.98)}
-.pay-btn[disabled]{opacity:.4}
+.pay-btn[aria-disabled="true"]{border-color:var(--line)}
+.pay-btn.b[aria-disabled="true"]{background:var(--bar-soft);color:var(--bar)}
+.pay-btn.k[aria-disabled="true"]{background:var(--card-soft);color:var(--card)}
+.pay-btn[aria-disabled="true"]:active{transform:scale(.98)}
 
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
 .field label{font-size:11px;font-weight:600;font-stretch:86%;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
@@ -314,14 +326,19 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   background:var(--surface-2);color:var(--ink);font-size:15.5px;font-family:inherit;
 }
 .field input:focus,.field textarea:focus{outline:none;border-color:var(--brass);background:var(--surface)}
-.hintline{font-size:12.5px;color:var(--ink-3);line-height:1.5}
-.linkbtn{display:block;width:100%;text-align:start;font-size:13px;font-weight:600;color:var(--brass);padding:7px 0}
+.hintline{font-size:13.5px;color:var(--ink-2);line-height:1.55}
+.linkbtn{display:flex;align-items:center;width:100%;text-align:start;min-height:44px;font-size:13.5px;font-weight:600;color:var(--brass);padding:0}
 
 .toast{
   position:fixed;left:50%;transform:translate(-50%,14px);bottom:calc(env(safe-area-inset-bottom) + 78px);
   background:var(--ink);color:var(--ground);padding:10px 16px;border-radius:99px;
   font-size:13.5px;font-weight:600;z-index:80;opacity:0;transition:.22s ease;pointer-events:none;
-  max-width:88vw;text-align:center;
+  max-width:90vw;text-align:center;
+  display:flex;align-items:center;justify-content:center;gap:14px;
+}
+.toast .undo{
+  pointer-events:auto;color:var(--brass);font-weight:700;font-size:13.5px;
+  padding:4px 2px;flex:none;white-space:nowrap;
 }
 .toast.in{opacity:1;transform:translate(-50%,0)}
 
@@ -536,7 +553,7 @@ const NUMLOC = { de:'de-DE', fr:'fr-FR', ar:'de-DE' };
 const DICT = {
 de:{
  tab_today:'Heute', tab_team:'Team', tab_cash:'Kasse', tab_report:'Bericht', tab_more:'Mehr',
- hd_today:'Meine Kunden', more_sub:'Friseure, Auszahlungen, Daten',
+ hd_today:'Meine Kunden', more_sub:'Friseure, Gehalt, Daten',
  a_prevday:'Tag zurück', a_nextday:'Tag vor', a_prev:'zurück', a_next:'vor', today:'heute',
  closed:'abgeschlossen', bar:'Bar', card:'Karte', me:'ich', all:'Alle',
  cust_1:'Kunde', cust_n:'Kunden', customer:'Kunde', entries:'Einträge',
@@ -546,25 +563,25 @@ de:{
  sec_backup:'Sicherung', no_backup_yet:'Noch kein Backup gemacht', last_backup_days:'Letztes Backup vor {0} Tagen',
  backup_tap:'Antippen und die Sicherungsdatei speichern.',
  total_rev_on:'Gesamtumsatz {0}', rev_by_barber:'Umsatz nach Friseur', total_revenue:'Umsatz gesamt',
- expenses:'Ausgaben', add_expense:'+ Ausgabe', no_expenses_today:'Heute keine Ausgaben', day_result:'Tagesergebnis',
+ expenses:'Ausgaben', add_expense:'+ Ausgabe', no_expenses_today:'Heute keine Ausgaben', day_result:'Umsatz minus Ausgaben',
  salary_today:'Gehalt heute', tap_to_enter:'tippen zum Eintragen',
  paid_out:'ausgezahlt', still_open:'noch offen', not_entered:'noch nicht eingetragen',
- paid:'bezahlt', open:'offen', no_barbers:'Keine Friseure aktiv',
- in_till:'In der Kasse', till_line:'Bar eingenommen <strong class="num">{0}</strong> · bar ausgezahltes Gehalt <strong class="num">{1}</strong> · Ausgaben <strong class="num">{2}</strong>',
- till_calc:'Rechnerischer Bar-Bestand',
+ paid:'ausgezahlt', open:'noch offen', no_barbers:'Keine Friseure aktiv',
+ in_till:'In der Kasse', till_cash_in:'Bar eingenommen', till_salary:'Gehalt ausgezahlt',
+ till_exp:'Ausgaben bar', till_should:'So viel Bargeld müsste jetzt da sein',
  r_day:'Tag', r_week:'Woche', r_month:'Monat', r_year:'Jahr', cw:'KW {0}', year_n:'Jahr {0}',
  rev_period:'Umsatz · {0}', revenue:'Umsatz', expenses_n:'Ausgaben ({0})',
  salary_paid:'Gehalt ausgezahlt', remains:'Verbleibt',
  rev_per_barber:'Umsatz pro Friseur', no_rev_period:'Keine Umsätze in diesem Zeitraum',
  pct_cust:'{0} % · {1} Kunden',
- sal_paid_open:'Gehalt: bezahlt / offen', no_salary:'Keine Gehaltseinträge',
- x_paid:'{0} bezahlt', x_open:'{0} offen', nothing_open:'nichts offen im Zeitraum',
+ sal_paid_open:'Gehalt: ausgezahlt / noch offen', no_salary:'Keine Gehaltseinträge',
+ x_paid:'{0} ausgezahlt', x_open:'{0} noch offen', nothing_open:'nichts offen im Zeitraum',
  open_all_time:'Offen insgesamt (alle Zeiträume):',
  open_total:'Offen gesamt', open_total_sub:'Noch nicht ausgezahltes Gehalt über alle Tage',
  app_sub:'Tageskasse & Gehalt · offline auf diesem Gerät', change:'ändern',
  barbers:'Friseure', add_barber:'+ Friseur', n_entries_total:'{0} Einträge gesamt', edit:'bearbeiten',
- sal_balance:'Gehalt-Salden', all_paid:'alles bezahlt',
- last_payouts:'Letzte Auszahlungen', add_payout:'+ Auszahlung', no_payouts:'Noch keine Auszahlungen',
+ sal_balance:'Gehalt-Salden', all_paid:'alles ausgezahlt',
+ last_payouts:'Letzte Gehalt-Einträge', add_payout:'+ Gehalt nachtragen', no_payouts:'Noch keine Gehalt-Einträge',
  last_expenses:'Letzte Ausgaben', no_expenses:'Keine Ausgaben',
  storage:'Speicher & Sicherung', persist_l:'Dauerhaft im Gerät',
  st_active:'aktiv', st_inactive:'nicht aktiv', st_checking:'wird geprüft',
@@ -583,7 +600,7 @@ de:{
  version_line:'Version {0} · alle Daten bleiben auf diesem Gerät',
  sh_new_entry:'Kunde erfassen', sh_edit_entry:'Eintrag bearbeiten',
  pay_save:'speichern', pay_as_bar:'als bar', pay_as_card:'als karte', del_entry:'Eintrag löschen',
- f_barber:'Friseur', other_barber:'Anderer Friseur: {0} ändern',
+ f_barber:'Friseur',
  add_note:'+ Notiz / Kundenname', note_customer:'Notiz / Kunde', note_ph:'z. B. Schnitt + Bart',
  sh_new_exp:'Ausgabe erfassen', sh_edit_exp:'Ausgabe bearbeiten',
  category:'Kategorie', c_material:'Material', c_rent:'Miete', c_other:'Sonstiges',
@@ -598,7 +615,7 @@ de:{
  set_me:'Als „ich“ festlegen', del_barber:'Friseur löschen', del_barber_q:'Friseur löschen?',
  del_barber_txt:'{0} hat {1} Einträge. Die Einträge bleiben erhalten, der Friseur verschwindet aus den Listen.',
  yes_delete:'Ja, löschen', cancel:'Abbrechen', status_l:'Status', amount_l:'Betrag',
- sh_payout:'Auszahlung erfassen', sh_payout_e:'Auszahlung', date:'Datum', del_payout:'Auszahlung löschen',
+ sh_payout:'Gehalt nachtragen', sh_payout_e:'Gehalt-Eintrag', date:'Datum', del_payout:'Gehalt-Eintrag löschen',
  sh_welcome:'Willkommen', sh_setup:'Salon & Friseure',
  setup_hint:'Zwei Angaben und du kannst loslegen. Alles lässt sich später unter „Mehr“ ändern.',
  shop:'Salon', shop_ph:'z. B. Barbershop Hamza', your_name:'Dein Name', your_name_ph:'z. B. Hamza',
@@ -632,19 +649,29 @@ de:{
  t_copied:'Kopiert', t_file_saved:'Datei gespeichert', t_dl_blocked:'Download hier blockiert – Text kopieren',
  t_day_closed:'Tag abgeschlossen', t_day_open:'Tag wieder geöffnet',
  t_enter_name:'Bitte Namen eingeben', t_save_first:'Erst speichern', t_now_me:'{0} ist jetzt „ich“',
- t_deleted:'Gelöscht', t_payout_saved:'Auszahlung gespeichert',
- t_marked_paid:'Als bezahlt markiert', t_marked_open:'Als offen markiert',
+ t_deleted:'Gelöscht', t_payout_saved:'Gehalt gespeichert',
+ t_marked_paid:'Als ausgezahlt markiert', t_marked_open:'Als offen markiert',
  t_wiped:'Alles gelöscht – bereit', t_restored:'Wiederhergestellt',
  t_not_readable:'Datei nicht lesbar', t_invalid_backup:'Keine gültige Sicherungsdatei',
  t_have_data:'Es sind schon Daten vorhanden', t_demo_loaded:'Beispieldaten geladen',
  t_recovered:'Daten aus dem Gerätespeicher wiederhergestellt',
  t_persist_on:'Dauerhafte Speicherung ist aktiv', t_persist_no:'Der Browser hat es abgelehnt – bitte Backups machen',
  t_snap_restored:'Stand wiederhergestellt', t_setup_done:'Fertig – los geht’s',
- t_file_dl:'{0} gespeichert', t_no_save:'Speichern nicht möglich'
+ t_file_dl:'{0} gespeichert', t_no_save:'Speichern nicht möglich',
+ sal_enter:'Eintragen', src_close:'aus dem Tagesabschluss', src_manual:'nachgetragen',
+ undo:'Rückgängig', t_copied_backup:'Kopiert – zählt noch nicht als Sicherung. Bitte die Datei speichern.',
+ sh_open_sal:'Offenes Gehalt · {0}', mark_all_paid:'Alles als ausgezahlt markieren',
+ t_marked_sum:'{0} als ausgezahlt gebucht',
+ closed_q:'Tag ist abgeschlossen',
+ closed_txt:'Der {0} ist schon abgeschlossen. Ein neuer Eintrag ändert den Abschluss, den du vielleicht schon exportiert hast.',
+ anyway:'Trotzdem eintragen',
+ team_empty:'Noch keine Kollegen angelegt',
+ team_empty_hint:'Tippe unten auf „Friseur“ und trag deine Kollegen ein, dann siehst du hier ihre Kunden.',
+ have_backup:'Ich habe schon eine Sicherungsdatei'
 },
 fr:{
  tab_today:'Aujourd’hui', tab_team:'Équipe', tab_cash:'Caisse', tab_report:'Rapport', tab_more:'Plus',
- hd_today:'Mes clients', more_sub:'Coiffeurs, versements, données',
+ hd_today:'Mes clients', more_sub:'Coiffeurs, salaires, données',
  a_prevday:'Jour précédent', a_nextday:'Jour suivant', a_prev:'précédent', a_next:'suivant', today:'aujourd’hui',
  closed:'clôturé', bar:'Espèces', card:'Carte', me:'moi', all:'Tous',
  cust_1:'client', cust_n:'clients', customer:'Client', entries:'Écritures',
@@ -654,25 +681,25 @@ fr:{
  sec_backup:'Sauvegarde', no_backup_yet:'Aucune sauvegarde effectuée', last_backup_days:'Dernière sauvegarde il y a {0} jours',
  backup_tap:'Appuie pour enregistrer le fichier de sauvegarde.',
  total_rev_on:'Recettes totales {0}', rev_by_barber:'Recettes par coiffeur', total_revenue:'Recettes totales',
- expenses:'Dépenses', add_expense:'+ Dépense', no_expenses_today:'Aucune dépense aujourd’hui', day_result:'Résultat du jour',
+ expenses:'Dépenses', add_expense:'+ Dépense', no_expenses_today:'Aucune dépense aujourd’hui', day_result:'Recettes moins dépenses',
  salary_today:'Salaire du jour', tap_to_enter:'appuyer pour saisir',
  paid_out:'versé', still_open:'en attente', not_entered:'pas encore saisi',
- paid:'payé', open:'en attente', no_barbers:'Aucun coiffeur actif',
- in_till:'Dans la caisse', till_line:'Espèces encaissées <strong class="num">{0}</strong> · salaires versés en espèces <strong class="num">{1}</strong> · dépenses <strong class="num">{2}</strong>',
- till_calc:'Solde théorique en espèces',
+ paid:'versé', open:'en attente', no_barbers:'Aucun coiffeur actif',
+ in_till:'Dans la caisse', till_cash_in:'Espèces encaissées', till_salary:'Salaires versés',
+ till_exp:'Dépenses en espèces', till_should:'Voilà ce qui devrait être en caisse',
  r_day:'Jour', r_week:'Semaine', r_month:'Mois', r_year:'Année', cw:'Sem. {0}', year_n:'Année {0}',
  rev_period:'Recettes · {0}', revenue:'Recettes', expenses_n:'Dépenses ({0})',
  salary_paid:'Salaires versés', remains:'Il reste',
  rev_per_barber:'Recettes par coiffeur', no_rev_period:'Aucune recette sur cette période',
  pct_cust:'{0} % · {1} clients',
- sal_paid_open:'Salaire : payé / en attente', no_salary:'Aucune écriture de salaire',
- x_paid:'{0} payé', x_open:'{0} en attente', nothing_open:'rien en attente sur la période',
+ sal_paid_open:'Salaire : versé / en attente', no_salary:'Aucune écriture de salaire',
+ x_paid:'{0} versé', x_open:'{0} en attente', nothing_open:'rien en attente sur la période',
  open_all_time:'En attente au total (toutes périodes) :',
  open_total:'En attente au total', open_total_sub:'Salaire pas encore versé, tous jours confondus',
  app_sub:'Caisse du jour & salaires · hors ligne sur cet appareil', change:'modifier',
  barbers:'Coiffeurs', add_barber:'+ Coiffeur', n_entries_total:'{0} écritures au total', edit:'modifier',
- sal_balance:'Soldes de salaire', all_paid:'tout est payé',
- last_payouts:'Derniers versements', add_payout:'+ Versement', no_payouts:'Aucun versement',
+ sal_balance:'Soldes de salaire', all_paid:'tout est versé',
+ last_payouts:'Derniers salaires saisis', add_payout:'+ Ajouter un salaire', no_payouts:'Aucun salaire saisi',
  last_expenses:'Dernières dépenses', no_expenses:'Aucune dépense',
  storage:'Stockage & sauvegarde', persist_l:'Stockage permanent',
  st_active:'actif', st_inactive:'inactif', st_checking:'vérification',
@@ -691,7 +718,7 @@ fr:{
  version_line:'Version {0} · les données restent sur cet appareil',
  sh_new_entry:'Nouveau client', sh_edit_entry:'Modifier l’écriture',
  pay_save:'enregistrer', pay_as_bar:'en espèces', pay_as_card:'par carte', del_entry:'Supprimer l’écriture',
- f_barber:'Coiffeur', other_barber:'Autre coiffeur : modifier {0}',
+ f_barber:'Coiffeur',
  add_note:'+ Note / nom du client', note_customer:'Note / client', note_ph:'p. ex. coupe + barbe',
  sh_new_exp:'Nouvelle dépense', sh_edit_exp:'Modifier la dépense',
  category:'Catégorie', c_material:'Matériel', c_rent:'Loyer', c_other:'Divers',
@@ -706,7 +733,7 @@ fr:{
  set_me:'Définir comme « moi »', del_barber:'Supprimer le coiffeur', del_barber_q:'Supprimer le coiffeur ?',
  del_barber_txt:'{0} a {1} écritures. Elles seront conservées, seul le coiffeur disparaît des listes.',
  yes_delete:'Oui, supprimer', cancel:'Annuler', status_l:'Statut', amount_l:'Montant',
- sh_payout:'Nouveau versement', sh_payout_e:'Versement', date:'Date', del_payout:'Supprimer le versement',
+ sh_payout:'Ajouter un salaire', sh_payout_e:'Salaire saisi', date:'Date', del_payout:'Supprimer ce salaire',
  sh_welcome:'Bienvenue', sh_setup:'Salon & coiffeurs',
  setup_hint:'Deux informations et c’est parti. Tout se modifie ensuite dans « Plus ».',
  shop:'Salon', shop_ph:'p. ex. Barbershop Hamza', your_name:'Ton nom', your_name_ph:'p. ex. Hamza',
@@ -740,19 +767,29 @@ fr:{
  t_copied:'Copié', t_file_saved:'Fichier enregistré', t_dl_blocked:'Téléchargement bloqué ici – copie le texte',
  t_day_closed:'Journée clôturée', t_day_open:'Journée rouverte',
  t_enter_name:'Saisis un nom', t_save_first:'Enregistre d’abord', t_now_me:'{0} est maintenant « moi »',
- t_deleted:'Supprimé', t_payout_saved:'Versement enregistré',
- t_marked_paid:'Marqué comme payé', t_marked_open:'Marqué comme en attente',
+ t_deleted:'Supprimé', t_payout_saved:'Salaire enregistré',
+ t_marked_paid:'Marqué comme versé', t_marked_open:'Marqué comme en attente',
  t_wiped:'Tout est effacé – prêt', t_restored:'Restauré',
  t_not_readable:'Fichier illisible', t_invalid_backup:'Fichier de sauvegarde invalide',
  t_have_data:'Des données existent déjà', t_demo_loaded:'Données d’exemple chargées',
  t_recovered:'Données restaurées depuis la mémoire de l’appareil',
  t_persist_on:'Le stockage permanent est actif', t_persist_no:'Le navigateur a refusé – pense aux sauvegardes',
  t_snap_restored:'État restauré', t_setup_done:'Terminé – c’est parti',
- t_file_dl:'{0} enregistré', t_no_save:'Enregistrement impossible'
+ t_file_dl:'{0} enregistré', t_no_save:'Enregistrement impossible',
+ sal_enter:'Saisir', src_close:'depuis la clôture du jour', src_manual:'ajouté après coup',
+ undo:'Annuler', t_copied_backup:'Copié – ne compte pas encore comme sauvegarde. Enregistre le fichier.',
+ sh_open_sal:'Salaire en attente · {0}', mark_all_paid:'Tout marquer comme versé',
+ t_marked_sum:'{0} enregistré comme versé',
+ closed_q:'Journée clôturée',
+ closed_txt:'Le {0} est déjà clôturé. Une nouvelle écriture modifie la clôture que tu as peut-être déjà exportée.',
+ anyway:'Saisir quand même',
+ team_empty:'Aucun collègue enregistré',
+ team_empty_hint:'Appuie en bas sur « Coiffeur » et saisis tes collègues, tu verras ensuite leurs clients ici.',
+ have_backup:'J’ai déjà un fichier de sauvegarde'
 },
 ar:{
  tab_today:'اليوم', tab_team:'الفريق', tab_cash:'الصندوق', tab_report:'التقرير', tab_more:'المزيد',
- hd_today:'زبائني', more_sub:'الحلاقون، الدفعات، البيانات',
+ hd_today:'زبائني', more_sub:'الحلاقون، الأجور، البيانات',
  a_prevday:'اليوم السابق', a_nextday:'اليوم التالي', a_prev:'السابق', a_next:'التالي', today:'اليوم',
  closed:'مُقفل', bar:'نقداً', card:'بطاقة', me:'أنا', all:'الكل',
  cust_1:'زبون', cust_n:'زبائن', customer:'زبون', entries:'السجلات',
@@ -762,25 +799,25 @@ ar:{
  sec_backup:'النسخ الاحتياطي', no_backup_yet:'لم تقم بأي نسخة احتياطية بعد', last_backup_days:'آخر نسخة احتياطية منذ {0} يوماً',
  backup_tap:'اضغط لحفظ ملف النسخة الاحتياطية.',
  total_rev_on:'إجمالي المداخيل {0}', rev_by_barber:'المداخيل حسب الحلاق', total_revenue:'إجمالي المداخيل',
- expenses:'المصاريف', add_expense:'+ مصروف', no_expenses_today:'لا مصاريف اليوم', day_result:'نتيجة اليوم',
+ expenses:'المصاريف', add_expense:'+ مصروف', no_expenses_today:'لا مصاريف اليوم', day_result:'المداخيل ناقص المصاريف',
  salary_today:'أجر اليوم', tap_to_enter:'اضغط للإدخال',
  paid_out:'مدفوع', still_open:'غير مدفوع', not_entered:'لم يُسجَّل بعد',
- paid:'مدفوع', open:'معلّق', no_barbers:'لا يوجد حلاقون',
- in_till:'في الصندوق', till_line:'المقبوض نقداً <strong class="num">{0}</strong> · الأجور المدفوعة نقداً <strong class="num">{1}</strong> · المصاريف <strong class="num">{2}</strong>',
- till_calc:'الرصيد النقدي المُحتسب',
+ paid:'مدفوع', open:'غير مدفوع', no_barbers:'لا يوجد حلاقون',
+ in_till:'في الصندوق', till_cash_in:'المقبوض نقداً', till_salary:'الأجور المدفوعة',
+ till_exp:'المصاريف نقداً', till_should:'هذا ما يجب أن يكون في الصندوق',
  r_day:'يوم', r_week:'أسبوع', r_month:'شهر', r_year:'سنة', cw:'الأسبوع {0}', year_n:'سنة {0}',
  rev_period:'المداخيل · {0}', revenue:'المداخيل', expenses_n:'المصاريف ({0})',
  salary_paid:'الأجور المدفوعة', remains:'المتبقّي',
  rev_per_barber:'المداخيل لكل حلاق', no_rev_period:'لا مداخيل في هذه الفترة',
  pct_cust:'{0} ٪ · {1} زبائن',
- sal_paid_open:'الأجر: مدفوع / معلّق', no_salary:'لا توجد سجلات أجور',
- x_paid:'{0} مدفوع', x_open:'{0} معلّق', nothing_open:'لا شيء معلّق في هذه الفترة',
- open_all_time:'المعلّق إجمالاً (كل الفترات):',
- open_total:'المعلّق إجمالاً', open_total_sub:'أجر لم يُدفع بعد عبر جميع الأيام',
+ sal_paid_open:'الأجر: مدفوع / غير مدفوع', no_salary:'لا توجد سجلات أجور',
+ x_paid:'{0} مدفوع', x_open:'{0} غير مدفوع', nothing_open:'لا شيء غير مدفوع في هذه الفترة',
+ open_all_time:'غير المدفوع إجمالاً (كل الفترات):',
+ open_total:'غير المدفوع إجمالاً', open_total_sub:'أجر لم يُدفع بعد عبر جميع الأيام',
  app_sub:'صندوق يومي وأجور · يعمل دون إنترنت على هذا الجهاز', change:'تغيير',
  barbers:'الحلاقون', add_barber:'+ حلاق', n_entries_total:'{0} سجلاً إجمالاً', edit:'تعديل',
  sal_balance:'أرصدة الأجور', all_paid:'كل شيء مدفوع',
- last_payouts:'آخر الدفعات', add_payout:'+ دفعة', no_payouts:'لا توجد دفعات بعد',
+ last_payouts:'آخر سجلات الأجور', add_payout:'+ إضافة أجر', no_payouts:'لا توجد سجلات أجور بعد',
  last_expenses:'آخر المصاريف', no_expenses:'لا توجد مصاريف',
  storage:'التخزين والنسخ الاحتياطي', persist_l:'تخزين دائم في الجهاز',
  st_active:'مُفعّل', st_inactive:'غير مُفعّل', st_checking:'جارٍ التحقق',
@@ -799,7 +836,7 @@ ar:{
  version_line:'الإصدار {0} · كل البيانات تبقى على هذا الجهاز',
  sh_new_entry:'تسجيل زبون', sh_edit_entry:'تعديل السجل',
  pay_save:'حفظ', pay_as_bar:'نقداً', pay_as_card:'بالبطاقة', del_entry:'حذف السجل',
- f_barber:'الحلاق', other_barber:'حلاق آخر: تغيير {0}',
+ f_barber:'الحلاق',
  add_note:'+ ملاحظة / اسم الزبون', note_customer:'ملاحظة / زبون', note_ph:'مثال: قص + لحية',
  sh_new_exp:'تسجيل مصروف', sh_edit_exp:'تعديل المصروف',
  category:'الفئة', c_material:'مواد', c_rent:'كراء', c_other:'أخرى',
@@ -814,7 +851,7 @@ ar:{
  set_me:'تعيينه كـ«أنا»', del_barber:'حذف الحلاق', del_barber_q:'حذف الحلاق؟',
  del_barber_txt:'لدى {0} عدد {1} سجلاً. تبقى السجلات محفوظة، ويختفي الحلاق من القوائم فقط.',
  yes_delete:'نعم، احذف', cancel:'إلغاء', status_l:'الحالة', amount_l:'المبلغ',
- sh_payout:'تسجيل دفعة', sh_payout_e:'دفعة', date:'التاريخ', del_payout:'حذف الدفعة',
+ sh_payout:'إضافة أجر', sh_payout_e:'سجل أجر', date:'التاريخ', del_payout:'حذف سجل الأجر',
  sh_welcome:'مرحباً', sh_setup:'الصالون والحلاقون',
  setup_hint:'معلومتان فقط ويمكنك البدء. كل شيء قابل للتعديل لاحقاً من «المزيد».',
  shop:'الصالون', shop_ph:'مثال: صالون حمزة', your_name:'اسمك', your_name_ph:'مثال: حمزة',
@@ -848,19 +885,37 @@ ar:{
  t_copied:'تم النسخ', t_file_saved:'تم حفظ الملف', t_dl_blocked:'التنزيل محظور هنا – انسخ النص',
  t_day_closed:'تم إقفال اليوم', t_day_open:'تمت إعادة فتح اليوم',
  t_enter_name:'أدخل الاسم من فضلك', t_save_first:'احفظ أولاً', t_now_me:'{0} أصبح «أنا» الآن',
- t_deleted:'تم الحذف', t_payout_saved:'تم حفظ الدفعة',
- t_marked_paid:'تم وضع علامة مدفوع', t_marked_open:'تم وضع علامة معلّق',
+ t_deleted:'تم الحذف', t_payout_saved:'تم حفظ الأجر',
+ t_marked_paid:'تم وضع علامة مدفوع', t_marked_open:'تم وضع علامة غير مدفوع',
  t_wiped:'تم حذف كل شيء – جاهز', t_restored:'تمت الاستعادة',
  t_not_readable:'تعذّرت قراءة الملف', t_invalid_backup:'ملف نسخة احتياطية غير صالح',
  t_have_data:'توجد بيانات بالفعل', t_demo_loaded:'تم تحميل البيانات التجريبية',
  t_recovered:'تمت استعادة البيانات من ذاكرة الجهاز',
  t_persist_on:'التخزين الدائم مُفعّل', t_persist_no:'رفض المتصفح ذلك – خذ نسخاً احتياطية',
  t_snap_restored:'تمت استعادة النسخة', t_setup_done:'تم – لنبدأ',
- t_file_dl:'تم حفظ {0}', t_no_save:'تعذّر الحفظ'
+ t_file_dl:'تم حفظ {0}', t_no_save:'تعذّر الحفظ',
+ sal_enter:'إدخال', src_close:'من إقفال اليوم', src_manual:'مُضاف لاحقاً',
+ undo:'تراجع', t_copied_backup:'تم النسخ – لا يُحتسب نسخة احتياطية بعد. احفظ الملف من فضلك.',
+ sh_open_sal:'أجر غير مدفوع · {0}', mark_all_paid:'وضع علامة مدفوع على الكل',
+ t_marked_sum:'تم تسجيل {0} كمدفوع',
+ closed_q:'اليوم مُقفل',
+ closed_txt:'يوم {0} مُقفل بالفعل. أي إدخال جديد يغيّر الإقفال الذي ربما صدّرته بالفعل.',
+ anyway:'إدخال رغم ذلك',
+ team_empty:'لم تُسجَّل أي زملاء بعد',
+ team_empty_hint:'اضغط في الأسفل على «حلاق» وسجّل زملاءك، عندها ترى زبائنهم هنا.',
+ have_backup:'لديّ نسخة احتياطية بالفعل'
 }
 };
 
-let LANG = (S && S.settings && LANGS[S.settings.lang]) ? S.settings.lang : 'de';
+function detectLang(){
+  try{
+    const l = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+    const k = String(l).slice(0,2).toLowerCase();
+    if(LANGS[k]) return k;
+  }catch(e){}
+  return 'de';
+}
+let LANG = (S && S.settings && LANGS[S.settings.lang]) ? S.settings.lang : detectLang();
 function tr(k, a, b, c){
   let s = (DICT[LANG] && DICT[LANG][k] !== undefined) ? DICT[LANG][k] : DICT.de[k];
   if(s === undefined) return k;
@@ -1040,13 +1095,23 @@ const I = {
    Toast
    ============================================================ */
 let toastT;
-function toast(msg){
+function toast(msg, undo){
   let el = document.querySelector('.toast');
   if(!el){ el = document.createElement('div'); el.className='toast'; document.body.appendChild(el); }
-  el.textContent = msg;
+  el.innerHTML = '';
+  const txt = document.createElement('span');
+  txt.textContent = msg;
+  el.appendChild(txt);
+  if(undo){
+    const b = document.createElement('button');
+    b.className = 'undo';
+    b.textContent = tr('undo');
+    b.onclick = ()=>{ clearTimeout(toastT); el.classList.remove('in'); undo(); };
+    el.appendChild(b);
+  }
   requestAnimationFrame(()=> el.classList.add('in'));
   clearTimeout(toastT);
-  toastT = setTimeout(()=>{ el.classList.remove('in'); }, 1900);
+  toastT = setTimeout(()=>{ el.classList.remove('in'); }, undo ? 6000 : 1900);
 }
 function buzz(ms){ if(navigator.vibrate) try{ navigator.vibrate(ms||8); }catch(e){} }
 
@@ -1086,9 +1151,11 @@ function closeSheet(instant){
 /* ---------- amount buffer ---------- */
 function makeAmount(initialCents){
   let buf = '';
+  let fresh = false;          // vorbelegt: die erste Ziffer ersetzt den alten Betrag
   if(initialCents){
     const s = (initialCents/100).toFixed(2).replace('.',',');
     buf = s.endsWith(',00') ? s.slice(0,-3) : s;
+    fresh = true;
   }
   return {
     get raw(){ return buf; },
@@ -1097,13 +1164,14 @@ function makeAmount(initialCents){
       return Math.round(parseFloat(buf.replace(',','.'))*100) || 0;
     },
     press(k){
-      if(k==='del'){ buf = buf.slice(0,-1); return; }
+      if(k==='del'){ fresh = false; buf = buf.slice(0,-1); return; }
+      if(fresh){ buf = ''; fresh = false; }
       if(k===','){ if(buf.includes(',')) return; buf = buf===''? '0,' : buf+','; return; }
       if(buf.includes(',')){ if(buf.split(',')[1].length>=2) return; }
       else if(buf.replace('-','').length>=6) return;
       if(buf==='0' && k!=='0') buf = k; else if(buf==='0' && k==='0') return; else buf += k;
     },
-    set(cents){ const s=(cents/100).toFixed(2).replace('.',','); buf = s.endsWith(',00')? s.slice(0,-3):s; },
+    set(cents){ fresh = false; const s=(cents/100).toFixed(2).replace('.',','); buf = s.endsWith(',00')? s.slice(0,-3):s; },
     display(){
       if(!buf) return '<span class="n zero">0<span class="caret"></span></span><span class="cur">€</span>';
       const [i,d] = buf.split(',');
@@ -1125,13 +1193,24 @@ function quickAmounts(){
   return top.length>=3 ? top : [1500,2000,2500,3000,3500];
 }
 
+/* Vor dem Erfassen prüfen, ob der Tag schon abgeschlossen ist. */
+function askClosed(d, go){
+  if(!S.closes[d]) return go();
+  openSheet(tr('closed_q'), `<p class="hintline">${tr('closed_txt', dateLabel(d))}</p>
+    <button class="btn primary block" data-yes style="margin-top:14px">${tr('anyway')}</button>
+    <button class="btn ghost block" data-no style="margin-top:10px">${tr('cancel')}</button>`,
+    {onMount(r){
+      r.querySelector('[data-yes]').onclick = ()=> go();
+      r.querySelector('[data-no]').onclick  = ()=> closeSheet();
+    }});
+}
+
 /* ---------- Kunde erfassen / bearbeiten ---------- */
 function sheetEntry(entry, defBarber, showPicker){
   const isNew = !entry;
   const amt = makeAmount(entry ? entry.a : 0);
   let bId = entry ? entry.b : (defBarber || me().id);
   let note = entry ? (entry.n||'') : '';
-  let pickerOpen = !!showPicker;
   const q = quickAmounts();
 
   const body = `
@@ -1143,26 +1222,26 @@ function sheetEntry(entry, defBarber, showPicker){
       <button class="pay-btn b" data-p="bar"><span>${tr('bar')}</span><span class="sub">${isNew?tr('pay_save'):tr('pay_as_bar')}</span></button>
       <button class="pay-btn k" data-p="karte"><span>${tr('card')}</span><span class="sub">${isNew?tr('pay_save'):tr('pay_as_card')}</span></button>
     </div>
-    ${isNew?'':`<button class="btn danger block" data-del style="margin-top:10px">${tr('del_entry')}</button>`}
+    ${isNew?'':`<button class="btn danger block apart" data-del>${tr('del_entry')}</button>`}
   `;
 
-  openSheet(isNew ? tr('sh_new_entry') : tr('sh_edit_entry'), body, {onMount(root){
+  const wann = (ui.date !== todayISO()) ? ' · ' + dateShort(ui.date) : '';
+  openSheet((isNew ? tr('sh_new_entry') : tr('sh_edit_entry')) + wann, body, {onMount(root){
     const ad = root.querySelector('#ad');
     const extra = root.querySelector('#extra');
     const sync = ()=>{
       ad.innerHTML = amt.display();
-      root.querySelectorAll('.pay-btn').forEach(b=> b.disabled = amt.cents<=0);
+      root.querySelectorAll('.pay-btn').forEach(b=> b.setAttribute('aria-disabled', amt.cents<=0));
     };
     const drawExtra = ()=>{
       extra.innerHTML = `
-        ${pickerOpen ? `<div class="field"><label>${tr('f_barber')}</label><div class="bchips">${
+        ${S.barbers.length > 1 ? `<div class="field"><label>${tr('f_barber')}</label><div class="bchips">${
           S.barbers.map(b=>`<button class="bchip" data-b="${b.id}" aria-pressed="${b.id===bId}">${esc(b.name)}${b.me?' · '+tr('me'):''}</button>`).join('')
-        }</div></div>` : (isNew && !showPicker ? `<button class="linkbtn" data-openpick>${tr('other_barber', esc(bname(bId)))}</button>` : '')}
+        }</div></div>` : ''}
         ${note!=='' || entry ? `<div class="field"><label>${tr('note_customer')}</label><input type="text" id="nt" value="${esc(note)}" placeholder="${tr('note_ph')}" maxlength="60"></div>`
           : `<button class="linkbtn" data-addnote>${tr('add_note')}</button>`}
       `;
       extra.querySelectorAll('[data-b]').forEach(b=> b.onclick = ()=>{ bId=b.dataset.b; drawExtra(); buzz(); });
-      const op = extra.querySelector('[data-openpick]'); if(op) op.onclick = ()=>{ pickerOpen=true; drawExtra(); };
       const an = extra.querySelector('[data-addnote]'); if(an) an.onclick = ()=>{ note=' '; drawExtra(); const i=extra.querySelector('#nt'); if(i){i.value='';i.focus();} };
       const nt = extra.querySelector('#nt'); if(nt) nt.oninput = ()=> note = nt.value;
     };
@@ -1171,7 +1250,7 @@ function sheetEntry(entry, defBarber, showPicker){
     root.querySelectorAll('[data-k]').forEach(b=> b.onclick = ()=>{ amt.press(b.dataset.k); sync(); buzz(6); });
     root.querySelectorAll('[data-q]').forEach(b=> b.onclick = ()=>{ amt.set(+b.dataset.q); sync(); buzz(6); });
     root.querySelectorAll('[data-p]').forEach(b=> b.onclick = ()=>{
-      if(amt.cents<=0) return;
+      if(amt.cents<=0){ toast(tr('t_enter_amount')); buzz(10); return; }
       const now = new Date();
       if(isNew){
         S.entries.push({
@@ -1187,8 +1266,11 @@ function sheetEntry(entry, defBarber, showPicker){
     });
     const del = root.querySelector('[data-del]');
     if(del) del.onclick = ()=>{
-      S.entries = S.entries.filter(e=>e.id!==entry.id);
-      save(); closeSheet(); render(); toast(tr('t_entry_del'));
+      const i = S.entries.indexOf(entry);
+      if(i < 0) return;
+      S.entries.splice(i, 1);
+      save(); closeSheet(); render();
+      toast(tr('t_entry_del'), ()=>{ S.entries.splice(i, 0, entry); save(); render(); });
     };
   }});
 }
@@ -1208,9 +1290,10 @@ function sheetExpense(exp){
     </div>
     <div class="field"><label>${tr('note')}</label><input type="text" id="nt" value="${esc(note)}" placeholder="${tr('ph_optional')}" maxlength="60"></div>
     <button class="btn primary block" data-save>${tr('save_expense')}</button>
-    ${isNew?'':`<button class="btn danger block" data-del style="margin-top:10px">${tr('del_l')}</button>`}
+    ${isNew?'':`<button class="btn danger block apart" data-del>${tr('del_l')}</button>`}
   `;
-  openSheet(isNew?tr('sh_new_exp'):tr('sh_edit_exp'), body, {onMount(root){
+  const wann = (ui.date !== todayISO()) ? ' · ' + dateShort(ui.date) : '';
+  openSheet((isNew?tr('sh_new_exp'):tr('sh_edit_exp')) + wann, body, {onMount(root){
     const ad = root.querySelector('#ad');
     const sync = ()=>{ ad.innerHTML = amt.display(); root.querySelector('[data-save]').disabled = amt.cents<=0; };
     sync();
@@ -1227,13 +1310,19 @@ function sheetExpense(exp){
       save(); closeSheet(); render(); toast(tr('t_exp_saved'));
     };
     const del = root.querySelector('[data-del]');
-    if(del) del.onclick = ()=>{ S.expenses = S.expenses.filter(x=>x.id!==exp.id); save(); closeSheet(); render(); toast(tr('t_exp_del')); };
+    if(del) del.onclick = ()=>{
+      const i = S.expenses.indexOf(exp);
+      if(i < 0) return;
+      S.expenses.splice(i, 1);
+      save(); closeSheet(); render();
+      toast(tr('t_exp_del'), ()=>{ S.expenses.splice(i, 0, exp); save(); render(); });
+    };
   }});
 }
 
 /* ---------- Gehalt für einen Friseur am Tag ---------- */
 function sheetSalary(bId, date){
-  let p = S.payouts.find(x=>x.d===date && x.b===bId && x.src==='close');
+  let p = S.payouts.find(x=>x.d===date && x.b===bId);
   const amt = makeAmount(p?p.a:0);
   let status = p ? p.s : 'paid';
   const rev = totals(S.entries.filter(e=>e.d===date && e.b===bId)).total;
@@ -1273,7 +1362,14 @@ function sheetSalary(bId, date){
       save(); closeSheet(); render(); toast(status==='paid'?tr('t_sal_paid'):tr('t_sal_open'));
     };
     const del = root.querySelector('[data-del]');
-    if(del) del.onclick = ()=>{ S.payouts = S.payouts.filter(x=>x.id!==p.id); save(); closeSheet(); render(); toast(tr('t_removed')); };
+    if(del) del.onclick = ()=>{
+      const i = S.payouts.indexOf(p);
+      if(i < 0) return;
+      const weg = p;
+      S.payouts.splice(i, 1);
+      save(); closeSheet(); render();
+      toast(tr('t_removed'), ()=>{ S.payouts.splice(i, 0, weg); save(); render(); });
+    };
   }});
 }
 
@@ -1291,9 +1387,9 @@ function sheetText(title, filename, text, hint, onSaved){
   `;
   openSheet(title, body, {onMount(root){
     root.querySelector('[data-copy]').onclick = async ()=>{
-      try{ await navigator.clipboard.writeText(text); toast(tr('t_copied')); }
-      catch(e){ const t=root.querySelector('#tx'); t.select(); document.execCommand('copy'); toast(tr('t_copied')); }
-      if(onSaved) onSaved();
+      const msg = onSaved ? tr('t_copied_backup') : tr('t_copied');
+      try{ await navigator.clipboard.writeText(text); toast(msg); }
+      catch(e){ const t=root.querySelector('#tx'); t.select(); document.execCommand('copy'); toast(msg); }
     };
     root.querySelector('[data-dl]').onclick = ()=>{
       try{
@@ -1407,6 +1503,12 @@ function screenHeute(){
 }
 
 function screenTeam(){
+  if(!others().length){
+    return `<div class="card"><div class="empty">
+      <div class="big">${tr('team_empty')}</div>
+      <div class="sm">${tr('team_empty_hint')}</div>
+    </div></div>`;
+  }
   const all = entriesOn(ui.date).filter(e=> e.b!==me().id);
   const filtered = ui.teamFilter==='all' ? all : all.filter(e=>e.b===ui.teamFilter);
   const t = totals(filtered);
@@ -1438,22 +1540,26 @@ function screenKasse(){
   const tAll = totals(dayEntries);
   const exp = S.expenses.filter(x=>x.d===d);
   const expSum = sum(exp,x=>x.a);
+  const expBar = sum(exp.filter(x=>x.c!=='Miete'), x=>x.a);   // Miete läuft übers Konto
+  const paidToday = sum(S.payouts.filter(p=>p.d===d && p.s==='paid'), p=>p.a);
   const closed = !!S.closes[d];
 
   const perB = S.barbers.map(b=>({b, t: totals(dayEntries.filter(e=>e.b===b.id))}))
                         .filter(x=> x.t.count>0 || x.b.me);
 
   const payRows = S.barbers.map(b=>{
-    const p = S.payouts.find(x=>x.d===d && x.b===b.id && x.src==='close');
+    const p = S.payouts.find(x=>x.d===d && x.b===b.id);
     const rev = totals(dayEntries.filter(e=>e.b===b.id)).total;
     if(!p && !rev && !b.me) return '';
     return `<button class="row" data-sal="${b.id}">
       <span class="main">
         <span class="t1">${esc(b.name)}${b.me?` <span class="pill me">${tr('me')}</span>`:''}</span>
-        <span class="t2">${p ? (p.s==='paid'?tr('paid_out'):tr('still_open')) : tr('not_entered')}</span>
+        ${p ? (p.src==='manual' ? `<span class="t2">${tr('src_manual')}</span>` : '')
+            : `<span class="t2">${tr('not_entered')}</span>`}
       </span>
-      ${p?`<span class="pill ${p.s==='paid'?'paid':'open'}">${p.s==='paid'?tr('paid'):tr('open')}</span>`:''}
-      <span class="amt money">${p?eur(p.a):'—'}</span>
+      ${p?`<span class="pill ${p.s==='paid'?'paid':'open'}">${p.s==='paid'?tr('paid'):tr('open')}</span>`
+        :`<span class="pill act-chip">${tr('sal_enter')}</span>`}
+      ${p?`<span class="amt money">${eur(p.a)}</span>`:''}
     </button>`;
   }).join('');
 
@@ -1476,14 +1582,16 @@ function screenKasse(){
       <div class="kv total"><span class="k">${tr('day_result')}</span><span class="v">${eur(tAll.total-expSum)}</span></div>
     </section>
 
-    <div class="sec-head"><span class="eyebrow">${tr('salary_today')}</span><span class="eyebrow">${tr('tap_to_enter')}</span></div>
+    <div class="sec-head"><span class="eyebrow">${tr('salary_today')}</span></div>
     <section class="card"><div class="rows">${payRows || `<div class="empty" style="padding:20px"><div class="sm">${tr('no_barbers')}</div></div>`}</div></section>
 
-    <div class="card card-pad" style="background:var(--surface-2);box-shadow:none">
-      <div class="eyebrow" style="margin-bottom:6px">${tr('in_till')}</div>
-      <div class="hintline">${tr('till_line', eur(tAll.bar), eur(sum(S.payouts.filter(p=>p.d===d&&p.s==='paid'),p=>p.a)), eur(expSum))}<br>
-      ${tr('till_calc')}: <strong class="num" style="color:var(--ink)">${eur(tAll.bar - sum(S.payouts.filter(p=>p.d===d&&p.s==='paid'),p=>p.a) - expSum)}</strong></div>
-    </div>`;
+    <div class="sec-head"><span class="eyebrow">${tr('in_till')}</span></div>
+    <section class="card">
+      <div class="kv"><span class="k">${tr('till_cash_in')}</span><span class="v">${eur(tAll.bar)}</span></div>
+      <div class="kv"><span class="k">− ${tr('till_salary')}</span><span class="v" style="color:var(--open)">${eur(paidToday)}</span></div>
+      <div class="kv"><span class="k">− ${tr('till_exp')}</span><span class="v" style="color:var(--open)">${eur(expBar)}</span></div>
+      <div class="kv total"><span class="k">${tr('till_should')}</span><span class="v">${eur(tAll.bar - paidToday - expBar)}</span></div>
+    </section>`;
 }
 
 function periodLabel(){
@@ -1527,7 +1635,7 @@ function screenBericht(){
       <div class="l1"><span class="nm">${esc(b.name)}${b.me?` <span class="pill me">${tr('me')}</span>`:''}</span><span class="vl">${eur(pd+op)}</span></div>
       <div class="l2" style="margin-top:7px">
         <span class="pill paid">${I.check} ${tr('x_paid', eur(pd))}</span>
-        ${op?`<span class="pill open">${tr('x_open', eur(op))}</span>`:`<span style="font-size:11.5px">${tr('nothing_open')}</span>`}
+        ${op?`<button class="pill open" data-openb="${b.id}">${tr('x_open', eur(op))}</button>`:`<span style="font-size:11.5px">${tr('nothing_open')}</span>`}
       </div>
       ${opAll?`<div class="l2"><span>${tr('open_all_time')} <strong class="num" style="color:var(--open)">${eur(opAll)}</strong></span></div>`:''}
     </div>`;
@@ -1618,14 +1726,14 @@ function screenMehr(){
     <div class="sec-head"><span class="eyebrow">${tr('sal_balance')}</span></div>
     <section class="card">${bal.map(x=>`
       <div class="kv"><span class="k">${esc(x.b.name)}</span>
-      <span class="v">${x.op?`<span class="pill open">${tr('x_open', eur(x.op))}</span>`:`<span class="pill paid">${tr('all_paid')}</span>`}</span></div>
+      <span class="v">${x.op?`<button class="pill open" data-openb="${x.b.id}">${tr('x_open', eur(x.op))}</button>`:`<span class="pill paid">${tr('all_paid')}</span>`}</span></div>
     `).join('')}</section>
 
     <div class="sec-head"><span class="eyebrow">${tr('last_payouts')}</span><button class="sec-act" data-addpay>${tr('add_payout')}</button></div>
     <section class="card"><div class="rows">${recent.length? recent.map(p=>`
       <button class="row" data-pay="${p.id}">
         <span class="lead">${dateShort(p.d).slice(3)}</span>
-        <span class="main"><span class="t1">${esc(bname(p.b))}</span><span class="t2">${p.s==='paid'?tr('paid_out'):tr('open')}</span></span>
+        <span class="main"><span class="t1">${esc(bname(p.b))}</span><span class="t2">${p.src==='manual'?tr('src_manual'):tr('src_close')}</span></span>
         <span class="pill ${p.s==='paid'?'paid':'open'}">${p.s==='paid'?tr('paid'):tr('open')}</span>
         <span class="amt money">${eur(p.a)}</span>
       </button>`).join('') : `<div class="empty"><div class="sm">${tr('no_payouts')}</div></div>`}</div></section>
@@ -1710,14 +1818,17 @@ function renderTabs(){
 
 function renderFab(){
   const f = document.getElementById('fab');
-  if(ui.tab==='heute' || ui.tab==='team'){
+  if(ui.tab==='team' && !others().length){
+    f.innerHTML = `<button class="btn primary block" data-addb>${I.plus} ${tr('f_barber')}</button>`;
+    f.querySelector('[data-addb]').onclick = ()=> sheetBarber(null);
+  } else if(ui.tab==='heute' || ui.tab==='team'){
     f.innerHTML = `<button class="btn primary block" data-add>${I.plus} ${tr('customer')}</button>`;
-    f.querySelector('[data-add]').onclick = ()=>{
+    f.querySelector('[data-add]').onclick = ()=> askClosed(ui.date, ()=>{
       if(ui.tab==='team'){
         const def = ui.teamFilter!=='all' ? ui.teamFilter : (others()[0]||me()).id;
         sheetEntry(null, def, true);
       } else sheetEntry(null, me().id, false);
-    };
+    });
   } else if(ui.tab==='kasse'){
     const closed = !!S.closes[ui.date];
     f.innerHTML = `<button class="btn ${closed?'ghost':'primary'} block" data-close2>${closed?tr('reopen_day'):tr('close_day')}</button>`;
@@ -1740,11 +1851,12 @@ function bindView(v){
   });
   v.querySelectorAll('[data-tf]').forEach(b=> b.onclick = ()=>{ ui.teamFilter=b.dataset.tf; render(); });
   v.querySelectorAll('[data-r]').forEach(b=> b.onclick = ()=>{ ui.range=b.dataset.r; render(); });
-  v.querySelectorAll('[data-sal]').forEach(b=> b.onclick = ()=> sheetSalary(b.dataset.sal, ui.date));
+  v.querySelectorAll('[data-sal]').forEach(b=> b.onclick = ()=> askClosed(ui.date, ()=> sheetSalary(b.dataset.sal, ui.date)));
+  v.querySelectorAll('[data-openb]').forEach(b=> b.onclick = (e)=>{ e.stopPropagation(); sheetOpenSalary(b.dataset.openb); });
   v.querySelectorAll('[data-exp]').forEach(b=> b.onclick = ()=>{
     const x = S.expenses.find(y=>y.id===b.dataset.exp); if(x) sheetExpense(x);
   });
-  const ae = v.querySelector('[data-addexp]'); if(ae) ae.onclick = ()=> sheetExpense(null);
+  const ae = v.querySelector('[data-addexp]'); if(ae) ae.onclick = ()=> askClosed(ui.date, ()=> sheetExpense(null));
   const ab = v.querySelector('[data-addbarber]'); if(ab) ab.onclick = ()=> sheetBarber(null);
   v.querySelectorAll('[data-barber]').forEach(b=> b.onclick = ()=>{
     const x = S.barbers.find(y=>y.id===b.dataset.barber); if(x) sheetBarber(x);
@@ -1830,6 +1942,35 @@ function sheetManualPayout(){
     };
   }});
 }
+function sheetOpenSalary(bId){
+  const list = S.payouts.filter(p=>p.b===bId && p.s==='open').sort((a,b)=> a.d.localeCompare(b.d));
+  const total = sum(list, p=>p.a);
+  const body = list.length ? `
+    <div class="amt-display" style="padding:2px 0 16px"><span class="n">${eur(total).replace(' €','')}</span><span class="cur">€</span></div>
+    <button class="btn primary block" data-all style="margin-bottom:14px">${tr('mark_all_paid')}</button>
+    <section class="card" style="box-shadow:none"><div class="rows">${list.map(p=>`
+      <button class="row" data-one="${p.id}">
+        <span class="main"><span class="t1">${dateLabel(p.d)}</span></span>
+        <span class="amt money">${eur(p.a)}</span>
+        <span class="pill act-chip">${tr('st_paid')}</span>
+      </button>`).join('')}</div></section>`
+    : `<p class="hintline">${tr('all_paid')}</p>`;
+  openSheet(tr('sh_open_sal', bname(bId)), body, {onMount(root){
+    const alle = root.querySelector('[data-all]');
+    if(alle) alle.onclick = ()=>{
+      list.forEach(x=> x.s = 'paid');
+      save(); closeSheet(); render(); toast(tr('t_marked_sum', eur(total)));
+    };
+    root.querySelectorAll('[data-one]').forEach(b=> b.onclick = ()=>{
+      const x = S.payouts.find(y=>y.id===b.dataset.one);
+      if(!x) return;
+      x.s = 'paid'; save(); render(); buzz();
+      toast(tr('t_marked_sum', eur(x.a)));
+      sheetOpenSalary(bId);
+    });
+  }});
+}
+
 function sheetPayoutEdit(p){
   const body = `
     <div class="card" style="box-shadow:none;margin-bottom:14px">
@@ -1847,7 +1988,13 @@ function sheetPayoutEdit(p){
       root.querySelectorAll('[data-s]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.s===p.s));
       render(); toast(p.s==='paid'?tr('t_marked_paid'):tr('t_marked_open'));
     });
-    root.querySelector('[data-del]').onclick = ()=>{ S.payouts = S.payouts.filter(x=>x.id!==p.id); save(); closeSheet(); render(); toast(tr('t_deleted')); };
+    root.querySelector('[data-del]').onclick = ()=>{
+      const i = S.payouts.indexOf(p);
+      if(i < 0) return;
+      S.payouts.splice(i, 1);
+      save(); closeSheet(); render();
+      toast(tr('t_deleted'), ()=>{ S.payouts.splice(i, 0, p); save(); render(); });
+    };
   }});
 }
 
@@ -1858,6 +2005,7 @@ function confirmClose(){
   const t = totals(dayEntries);
   const expSum = sum(S.expenses.filter(x=>x.d===d),x=>x.a);
   const pays = S.payouts.filter(p=>p.d===d);
+  const paidSum = sum(pays.filter(p=>p.s==='paid'), p=>p.a);
   const missing = S.barbers.filter(b=> dayEntries.some(e=>e.b===b.id) && !pays.some(p=>p.b===b.id));
   const body = `
     <section class="card" style="box-shadow:none">
@@ -1868,8 +2016,10 @@ function confirmClose(){
       }).join('')}
       <div class="kv"><span class="k">${tr('bar')}</span><span class="v" style="color:var(--bar)">${eur(t.bar)}</span></div>
       <div class="kv"><span class="k">${tr('card')}</span><span class="v" style="color:var(--card)">${eur(t.karte)}</span></div>
-      <div class="kv"><span class="k">${tr('expenses')}</span><span class="v" style="color:var(--open)">− ${eur(expSum)}</span></div>
       <div class="kv total"><span class="k">${tr('total_revenue')}</span><span class="v">${eur(t.total)}</span></div>
+      <div class="kv"><span class="k">− ${tr('expenses')}</span><span class="v" style="color:var(--open)">${eur(expSum)}</span></div>
+      <div class="kv"><span class="k">− ${tr('salary_paid')}</span><span class="v" style="color:var(--open)">${eur(paidSum)}</span></div>
+      <div class="kv total"><span class="k">${tr('remains')}</span><span class="v">${eur(t.total - expSum - paidSum)}</span></div>
     </section>
     ${missing.length?`<p class="hintline" style="margin:12px 0 0;color:var(--open)">${tr('no_salary_for', missing.map(b=>esc(b.name)).join(', '))}</p>`:''}
     <button class="btn primary block" data-yes style="margin-top:14px">${tr('close_day')}</button>
@@ -1926,7 +2076,8 @@ function sheetSetup(first){
       <input type="text" id="myname" value="${esc(me().name==='Ich'?'':me().name)}" placeholder="${tr('your_name_ph')}" maxlength="24" autocomplete="off"></div>
     <div class="field"><label>${tr('more_barbers')}</label><div id="cols"></div>
       <button class="linkbtn" data-addcol>${tr('add_barber_l')}</button></div>
-    <button class="btn primary block" data-save>${first?tr('lets_go'):tr('save')}</button>`;
+    <button class="btn primary block" data-save>${first?tr('lets_go'):tr('save')}</button>
+    ${first?`<button class="linkbtn" data-restore style="justify-content:center;margin-top:8px">${tr('have_backup')}</button>`:''}`;
   openSheet(first?tr('sh_welcome'):tr('sh_setup'), body, {onMount(root){
     const box = root.querySelector('#cols');
     const draw = ()=>{
@@ -1941,6 +2092,8 @@ function sheetSetup(first){
     };
     draw();
     root.querySelector('[data-addcol]').onclick = ()=>{ cols.push({id:null,name:'',entries:0}); draw(); };
+    const rb = root.querySelector('[data-restore]');
+    if(rb) rb.onclick = ()=> restoreBackup(()=> sheetSetup(true));
     root.querySelector('[data-save]').onclick = ()=>{
       const shop = root.querySelector('#shop').value.trim();
       const mine = root.querySelector('#myname').value.trim();
@@ -1960,19 +2113,20 @@ function sheetSetup(first){
   }});
 }
 
-function restoreBackup(){
+function restoreBackup(onCancel){
   const inp = document.createElement('input');
   inp.type='file'; inp.accept='application/json,.json';
   inp.style.cssText='position:fixed;opacity:0;pointer-events:none';
   document.body.appendChild(inp);
+  inp.oncancel = ()=>{ inp.remove(); if(onCancel) onCancel(); };
   inp.onchange = ()=>{
     const f = inp.files && inp.files[0]; inp.remove();
-    if(!f) return;
+    if(!f){ if(onCancel) onCancel(); return; }
     const rd = new FileReader();
     rd.onload = ()=>{
       let data;
-      try{ data = JSON.parse(rd.result); }catch(e){ toast(tr('t_not_readable')); return; }
-      if(!data || !Array.isArray(data.barbers) || !Array.isArray(data.entries)){ toast(tr('t_invalid_backup')); return; }
+      try{ data = JSON.parse(rd.result); }catch(e){ toast(tr('t_not_readable')); if(onCancel) onCancel(); return; }
+      if(!data || !Array.isArray(data.barbers) || !Array.isArray(data.entries)){ toast(tr('t_invalid_backup')); if(onCancel) onCancel(); return; }
       openSheet(tr('sh_restore_q'), `<p class="hintline">${tr('restore_txt', data.entries.length, (data.expenses||[]).length, (data.payouts||[]).length)}</p>
         <button class="btn primary block" data-yes style="margin-top:14px">${tr('restore_now')}</button>
         <button class="btn ghost block" data-no style="margin-top:10px">${tr('cancel')}</button>`,
@@ -1983,7 +2137,7 @@ function restoreBackup(){
             LANG = LANGS[S.settings.lang] ? S.settings.lang : LANG;
             save(); closeSheet(); ui.date=todayISO(); ui.anchor=todayISO(); applyLang(); render(); toast(tr('t_restored'));
           };
-          r.querySelector('[data-no]').onclick = ()=> closeSheet();
+          r.querySelector('[data-no]').onclick = ()=>{ closeSheet(); if(onCancel) onCancel(); };
         }});
     };
     rd.readAsText(f);
@@ -2355,6 +2509,7 @@ function sheetExport(range, label){
    Boot
    ============================================================ */
 if(!S){ S = defaultState(); save(); }
+if(!LANGS[S.settings.lang]){ S.settings.lang = LANG; save(); }
 document.addEventListener('gesturestart', e=> e.preventDefault());
 document.addEventListener('dblclick', e=> e.preventDefault(), {passive:false});
 applyLang();

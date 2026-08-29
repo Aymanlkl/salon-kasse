@@ -1,7 +1,7 @@
 /* Salon Kasse – Service Worker
    Aufgabe: die App startet auch ohne Internet und meldet neue Versionen.
    Bei jeder neuen App-Version die VERSION hochzählen. */
-const VERSION = 'salon-kasse-v3';
+const VERSION = 'salon-kasse-v4';
 const FONTS   = VERSION + '-fonts';
 const CORE = [
   './',
