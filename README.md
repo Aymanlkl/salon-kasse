@@ -29,17 +29,37 @@ erreichbar.
 Danach startet sie im Vollbild ohne Browser-Leiste, ohne Zoom und ohne
 seitliches Scrollen.
 
-## Datensicherung
+## Wie die Daten gespeichert werden
 
-Die Daten liegen ausschließlich im Browser-Speicher des Handys. Sie gehen
-verloren, wenn die App gelöscht oder die Website-Daten geleert werden.
+Alles bleibt auf dem Handy, nichts geht an einen Server. Damit die Daten dort
+auch dauerhaft liegen bleiben, macht die App drei Dinge:
 
-Deshalb regelmäßig: **Mehr → Backup speichern**. Die Datei irgendwo sichern
-(iCloud, Google Drive, E-Mail an sich selbst). Zurückholen über
-**Mehr → Backup wiederherstellen**.
+1. **Zwei Speicher parallel** – localStorage und IndexedDB. Räumt der Browser
+   einen davon weg, holt die App die Daten beim nächsten Start aus dem anderen.
+2. **Dauerhafter Speicher** – die App bittet den Browser, ihre Daten von der
+   automatischen Aufräumung auszunehmen. Status unter *Mehr → Speicher &
+   Sicherung*; steht dort „nicht aktiv“, lässt es sich dort einschalten.
+   Installiert man die App auf dem Homescreen, sagt der Browser meist zu.
+3. **Wiederherstellungspunkte** – einmal pro Tag legt die App automatisch einen
+   Stand ab, die letzten zehn bleiben erhalten. Auch die Rettung, wenn mal aus
+   Versehen etwas gelöscht wurde.
 
-Für den Steuerberater: **Bericht → Zeitraum exportieren** liefert eine
-CSV-Datei, die sich direkt in Excel öffnen lässt.
+Trotzdem gilt: kein Browser-Speicher ist garantiert. Deshalb erinnert die App
+alle 14 Tage an **Mehr → Backup speichern**. Die Datei in iCloud oder Google
+Drive legen, zurückholen über *Mehr → Backup wiederherstellen*.
+
+## Export
+
+Unter **Bericht → Zeitraum exportieren** (oder *Mehr → Bericht exportieren*):
+
+- **PDF-Bericht** – Umsatz, Bar/Karte, Umsatz je Friseur, Gehalt bezahlt/offen,
+  Ausgaben, Ergebnis und Tagesübersicht.
+- **PDF mit allen Buchungen** – zusätzlich jede einzelne Buchung, für den
+  Steuerberater.
+- **CSV-Datei** – öffnet direkt in Excel.
+
+Die PDFs werden in der App selbst erzeugt, ohne fremde Bibliothek. Der Export
+funktioniert deshalb auch offline.
 
 ## Neue Version veröffentlichen
 

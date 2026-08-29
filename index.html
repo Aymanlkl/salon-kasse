@@ -375,8 +375,127 @@ try{
 if(S && S.settings && S.settings.onboarded === undefined)
   S.settings.onboarded = Array.isArray(S.entries) && S.entries.length > 0;
 
+/* ============================================================
+   Dauerhafte Speicherung
+   localStorage (schnell) + IndexedDB (überlebt mehr) + tägliche
+   Wiederherstellungspunkte. Zusätzlich fragen wir den Browser um
+   Erlaubnis, die Daten nicht automatisch aufzuräumen.
+   ============================================================ */
+const IDB_NAME='salonkasse', IDB_STORE='kv';
+let idbP = null;
+function idb(){
+  if(idbP) return idbP;
+  idbP = new Promise((res,rej)=>{
+    if(typeof indexedDB === 'undefined') return rej(new Error('kein IndexedDB'));
+    const rq = indexedDB.open(IDB_NAME, 1);
+    rq.onupgradeneeded = ()=>{
+      const db = rq.result;
+      if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+    };
+    rq.onsuccess = ()=> res(rq.result);
+    rq.onerror   = ()=> rej(rq.error);
+  });
+  idbP.catch(()=>{ idbP = null; });
+  return idbP;
+}
+function idbPut(key,val){
+  return idb().then(db=> new Promise((res,rej)=>{
+    const tx = db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(val,key);
+    tx.oncomplete = ()=> res(true);
+    tx.onerror    = ()=> rej(tx.error);
+  })).catch(()=> false);
+}
+function idbGet(key){
+  return idb().then(db=> new Promise((res,rej)=>{
+    const tx = db.transaction(IDB_STORE,'readonly');
+    const rq = tx.objectStore(IDB_STORE).get(key);
+    rq.onsuccess = ()=> res(rq.result);
+    rq.onerror   = ()=> rej(rq.error);
+  })).catch(()=> undefined);
+}
+
+let saveT = null;
 function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  S.settings.savedAt = Date.now();
+  const json = JSON.stringify(S);
+  try{ localStorage.setItem(KEY, json); }catch(e){}
+  clearTimeout(saveT);
+  saveT = setTimeout(()=>{ idbPut('state', JSON.parse(json)); snapshot(); }, 500);
+}
+
+/* Ein Stand pro Tag, die letzten zehn werden aufgehoben. */
+function snapshot(){
+  const d = todayISO();
+  idbGet('snapshots').then(list=>{
+    list = Array.isArray(list) ? list : [];
+    const rec = { d, at: Date.now(), n: S.entries.length, s: JSON.parse(JSON.stringify(S)) };
+    if(list.length && list[list.length-1].d === d) list[list.length-1] = rec;
+    else list.push(rec);
+    while(list.length > 10) list.shift();
+    return idbPut('snapshots', list);
+  });
+}
+
+/* Nur einspringen, wenn lokal wirklich nichts mehr da ist. */
+function recoverFromIDB(){
+  if((S.entries||[]).length > 0) return;
+  idbGet('state').then(data=>{
+    if(!data || !Array.isArray(data.entries) || !data.entries.length) return;
+    S = data;
+    try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+    render();
+    toast('Daten aus dem Gerätespeicher wiederhergestellt');
+  });
+}
+
+let storageInfo = { persisted:null, usage:null, snaps:0 };
+function askPersist(){
+  if(!(typeof navigator!=='undefined' && navigator.storage && navigator.storage.persist))
+    return Promise.resolve(false);
+  return navigator.storage.persist().then(ok=>{
+    storageInfo.persisted = ok;
+    toast(ok ? 'Dauerhafte Speicherung ist aktiv' : 'Der Browser hat es abgelehnt – bitte Backups machen');
+    if(ui.tab==='mehr') render();
+    return ok;
+  }).catch(()=> false);
+}
+function refreshStorageInfo(){
+  const st = (typeof navigator!=='undefined' && navigator.storage) ? navigator.storage : null;
+  const jobs = [];
+  if(st && st.persisted) jobs.push(st.persisted().then(p=>{storageInfo.persisted=p}).catch(()=>{}));
+  if(st && st.estimate)  jobs.push(st.estimate().then(e=>{storageInfo.usage=e.usage}).catch(()=>{}));
+  jobs.push(idbGet('snapshots').then(l=>{ storageInfo.snaps = Array.isArray(l)?l.length:0; }).catch(()=>{}));
+  Promise.all(jobs).then(()=>{ if(ui.tab==='mehr') render(); }).catch(()=>{});
+}
+const daysSince = ts => ts ? Math.floor((Date.now()-ts)/86400000) : null;
+
+function sheetSnapshots(){
+  idbGet('snapshots').then(list=>{
+    list = Array.isArray(list) ? list.slice().reverse() : [];
+    const body = list.length ? `
+      <p class="hintline" style="margin:-4px 0 14px">Die App legt jeden Tag automatisch einen Stand im Gerät ab. Tippe einen an, um ihn zurückzuholen.</p>
+      <section class="card" style="box-shadow:none"><div class="rows">${list.map((s,i)=>`
+        <button class="row" data-sn="${i}">
+          <span class="main"><span class="t1">${dateLabel(s.d)}</span><span class="t2">${s.n} Umsätze</span></span>
+          <span class="amt money" style="font-size:13px;color:var(--ink-3)">zurückholen</span>
+        </button>`).join('')}</div></section>`
+      : '<p class="hintline">Noch keine Wiederherstellungspunkte vorhanden. Sie entstehen automatisch, sobald du Einträge speicherst.</p>';
+    openSheet('Wiederherstellungspunkte', body, {onMount(root){
+      root.querySelectorAll('[data-sn]').forEach(b=> b.onclick = ()=>{
+        const snap = list[+b.dataset.sn];
+        openSheet('Stand zurückholen?', `<p class="hintline">Stand vom <strong>${dateLabel(snap.d)}</strong> mit ${snap.n} Umsätzen. Alles, was du seitdem eingetragen hast, geht dabei verloren.</p>
+          <button class="btn primary block" data-yes style="margin-top:14px">Ja, diesen Stand laden</button>
+          <button class="btn ghost block" data-no style="margin-top:10px">Abbrechen</button>`,
+          {onMount(r2){
+            r2.querySelector('[data-yes]').onclick = ()=>{
+              S = snap.s; save(); closeSheet(); render(); toast('Stand wiederhergestellt');
+            };
+            r2.querySelector('[data-no]').onclick = ()=> closeSheet();
+          }});
+      });
+    }});
+  });
 }
 
 /* ============================================================
@@ -765,7 +884,7 @@ function sheetSalary(bId, date){
 }
 
 /* ---------- Text-Export-Sheet (CSV / Backup) ---------- */
-function sheetText(title, filename, text, hint){
+function sheetText(title, filename, text, hint, onSaved){
   const body = `
     <p class="hintline" style="margin:0 0 12px">${esc(hint||'')}</p>
     <div class="field"><textarea id="tx" rows="9" readonly style="font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;overflow:auto">${esc(text)}</textarea></div>
@@ -780,6 +899,7 @@ function sheetText(title, filename, text, hint){
     root.querySelector('[data-copy]').onclick = async ()=>{
       try{ await navigator.clipboard.writeText(text); toast('Kopiert'); }
       catch(e){ const t=root.querySelector('#tx'); t.select(); document.execCommand('copy'); toast('Kopiert'); }
+      if(onSaved) onSaved();
     };
     root.querySelector('[data-dl]').onclick = ()=>{
       try{
@@ -788,6 +908,7 @@ function sheetText(title, filename, text, hint){
         a.href = URL.createObjectURL(blob); a.download = filename;
         document.body.appendChild(a); a.click(); a.remove();
         toast('Datei gespeichert');
+        if(onSaved) onSaved();
       }catch(e){ toast('Download hier blockiert – Text kopieren'); }
     };
   }});
@@ -869,11 +990,23 @@ function entryRows(list, showBarber){
     </button>`).join('')}</div></section>`;
 }
 
+function backupWarn(){
+  if(!S.entries.length) return '';
+  const d = daysSince(S.settings.lastBackup);
+  if(d !== null && d < 14) return '';
+  return `<button class="card card-pad" data-backupnow style="display:block;width:100%;text-align:left;background:var(--brass-soft);border-color:transparent;box-shadow:none">
+    <div class="eyebrow" style="color:var(--brass)">Sicherung</div>
+    <div style="font-size:14.5px;font-weight:600;margin-top:3px">${d===null?'Noch kein Backup gemacht':'Letztes Backup vor '+d+' Tagen'}</div>
+    <div class="hintline" style="color:var(--brass);opacity:.9;margin-top:2px">Antippen und die Sicherungsdatei speichern.</div>
+  </button>`;
+}
+
 function screenHeute(){
   const list = entriesOn(ui.date).filter(e=> e.b===me().id);
   const t = totals(list);
   const closed = S.closes[ui.date];
-  return heroCard(`Umsatz ${dateShort(ui.date)}`, t, closed?'<span class="pill closed">abgeschlossen</span>':'')
+  return backupWarn()
+    + heroCard(`Umsatz ${dateShort(ui.date)}`, t, closed?'<span class="pill closed">abgeschlossen</span>':'')
     + `<div class="sec-head"><span class="eyebrow">Einträge</span><span class="eyebrow">${list.length}</span></div>`
     + entryRows(list,false);
 }
@@ -1047,6 +1180,12 @@ function screenBericht(){
     </div>`:''}`;
 }
 
+function doBackup(){
+  sheetText('Backup', `salon-backup-${todayISO()}.json`, JSON.stringify(S),
+    'Sicherungsdatei mit allen Daten. Lege sie in iCloud oder Google Drive – damit lässt sich alles wiederherstellen.',
+    ()=>{ S.settings.lastBackup = Date.now(); save(); render(); });
+}
+
 function screenMehr(){
   const bal = S.barbers.map(b=>{
     const op = sum(S.payouts.filter(p=>p.b===b.id&&p.s==='open'),p=>p.a);
@@ -1055,6 +1194,7 @@ function screenMehr(){
   });
   const recent = S.payouts.slice().sort((a,b)=> b.d.localeCompare(a.d)).slice(0,14);
   const recentExp = S.expenses.slice().sort((a,b)=> b.d.localeCompare(a.d)).slice(0,10);
+  const bDays = daysSince(S.settings.lastBackup);
 
   return `
     <div class="card card-pad" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
@@ -1096,9 +1236,25 @@ function screenMehr(){
         <span class="amt money" style="color:var(--open)">− ${eur(x.a)}</span>
       </button>`).join('') : '<div class="empty"><div class="sm">Keine Ausgaben</div></div>'}</div></section>
 
+    <div class="sec-head"><span class="eyebrow">Speicher & Sicherung</span></div>
+    <section class="card">
+      <div class="kv"><span class="k">Dauerhaft im Gerät</span><span class="v">${
+        storageInfo.persisted===true ? '<span class="pill paid">aktiv</span>'
+        : storageInfo.persisted===false ? '<span class="pill open">nicht aktiv</span>'
+        : '<span class="pill neutral">wird geprüft</span>'}</span></div>
+      <div class="kv"><span class="k">Belegter Speicher</span><span class="v" style="font-size:14px">${
+        storageInfo.usage!=null ? Math.max(1, Math.round(storageInfo.usage/1024)).toLocaleString('de-DE')+' KB' : '–'}</span></div>
+      <div class="kv"><span class="k">Letztes Backup</span><span class="v" style="font-size:14px;${bDays===null||bDays>=14?'color:var(--open)':''}">${
+        bDays===null ? 'noch nie' : bDays===0 ? 'heute' : 'vor '+bDays+' Tagen'}</span></div>
+    </section>
+    ${storageInfo.persisted===false ? '<button class="btn block" data-persist>Dauerhafte Speicherung einschalten</button>' : ''}
+    <section class="card"><div class="rows">
+      <button class="row" data-snaps><span class="main"><span class="t1">Wiederherstellungspunkte</span><span class="t2">${storageInfo.snaps} automatische Stände im Gerät</span></span></button>
+    </div></section>
+
     <div class="sec-head"><span class="eyebrow">Daten</span></div>
     <section class="card"><div class="rows">
-      <button class="row" data-csv><span class="main"><span class="t1">CSV exportieren</span><span class="t2">Alle Umsätze, Ausgaben & Gehälter</span></span></button>
+      <button class="row" data-export><span class="main"><span class="t1">Bericht exportieren</span><span class="t2">Als PDF oder CSV – alle Daten</span></span></button>
       <button class="row" data-backup><span class="main"><span class="t1">Backup speichern</span><span class="t2">Sicherungsdatei mit allen Daten</span></span></button>
       <button class="row" data-restore><span class="main"><span class="t1">Backup wiederherstellen</span><span class="t2">Aus einer Sicherungsdatei zurückholen</span></span></button>
       ${S.entries.length ? '' : '<button class="row" data-demo><span class="main"><span class="t1">Beispieldaten laden</span><span class="t2">Zum Ausprobieren – jederzeit wieder löschbar</span></span></button>'}
@@ -1144,7 +1300,10 @@ function renderTabs(){
     <button data-tab="${t.k}" ${ui.tab===t.k?'aria-current="page"':''}>
       ${t.i}<span class="lbl">${t.l}</span>
     </button>`).join('');
-  tb.querySelectorAll('[data-tab]').forEach(b=> b.onclick = ()=>{ ui.tab=b.dataset.tab; buzz(6); render(); });
+  tb.querySelectorAll('[data-tab]').forEach(b=> b.onclick = ()=>{
+    ui.tab = b.dataset.tab; buzz(6); render();
+    if(ui.tab==='mehr') refreshStorageInfo();
+  });
 }
 
 function renderFab(){
@@ -1166,7 +1325,7 @@ function renderFab(){
     };
   } else if(ui.tab==='bericht'){
     f.innerHTML = `<button class="btn block" data-exp2>Zeitraum exportieren</button>`;
-    f.querySelector('[data-exp2]').onclick = ()=> exportCSV(rangeOf(ui.range, ui.anchor));
+    f.querySelector('[data-exp2]').onclick = ()=> sheetExport(rangeOf(ui.range, ui.anchor), periodLabel());
   } else {
     f.innerHTML = '';
   }
@@ -1192,10 +1351,11 @@ function bindView(v){
   v.querySelectorAll('[data-pay]').forEach(b=> b.onclick = ()=>{
     const p = S.payouts.find(x=>x.id===b.dataset.pay); if(p) sheetPayoutEdit(p);
   });
-  const c = v.querySelector('[data-csv]'); if(c) c.onclick = ()=> exportCSV(null);
-  const bk = v.querySelector('[data-backup]'); if(bk) bk.onclick = ()=>
-    sheetText('Backup', `salon-backup-${todayISO()}.json`, JSON.stringify(S),
-      'Sicherungsdatei mit allen Daten. Speichere sie regelmäßig – damit lässt sich alles wiederherstellen.');
+  const c = v.querySelector('[data-export]'); if(c) c.onclick = ()=> sheetExport(null, 'Alle Daten');
+  const bw = v.querySelector('[data-backupnow]'); if(bw) bw.onclick = ()=> doBackup();
+  const ps = v.querySelector('[data-persist]'); if(ps) ps.onclick = ()=> askPersist();
+  const sn = v.querySelector('[data-snaps]'); if(sn) sn.onclick = ()=> sheetSnapshots();
+  const bk = v.querySelector('[data-backup]'); if(bk) bk.onclick = ()=> doBackup();
   const rs = v.querySelector('[data-reset]'); if(rs) rs.onclick = ()=> confirmReset();
   const st = v.querySelector('[data-setup]'); if(st) st.onclick = ()=> sheetSetup(false);
   const rt = v.querySelector('[data-restore]'); if(rt) rt.onclick = ()=> restoreBackup();
@@ -1458,6 +1618,318 @@ function offerUpdate(reg){
 }
 
 /* ============================================================
+   PDF-Export – eigener kleiner PDF-Schreiber
+   Keine fremde Bibliothek, damit der Export auch offline geht.
+   Standardschrift Helvetica mit WinAnsi-Kodierung (Umlaute + €).
+   ============================================================ */
+const PDF_W = 595.28, PDF_H = 841.89;
+const WIN_MAP = {'€':128,'‚':130,'„':132,'…':133,'†':134,'‡':135,'‰':137,'‹':139,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'™':153,'›':155};
+function winAnsi(s){
+  let out = '';
+  for(const ch of String(s == null ? '' : s)){
+    const c = ch.charCodeAt(0);
+    if(WIN_MAP[ch] !== undefined) out += String.fromCharCode(WIN_MAP[ch]);
+    else if(ch.length === 1 && c <= 255) out += ch;
+    else out += '?';
+  }
+  return out;
+}
+const HW = '278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 278 278 584 584 584 556 1015 667 667 722 722 667 611 778 722 278 500 667 556 833 722 778 667 778 722 667 611 722 667 944 667 667 611 278 278 278 469 556 333 556 556 500 556 556 278 556 556 222 222 500 222 833 556 556 556 556 333 500 278 556 500 722 500 500 500 334 260 334 584'.split(' ').map(Number);
+const HB = '278 333 474 556 556 889 722 238 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 333 333 584 584 584 611 975 722 722 722 722 667 611 778 722 278 556 722 611 833 722 778 667 778 722 667 611 722 667 944 667 667 611 333 278 333 584 556 333 556 611 556 611 556 333 611 611 278 278 556 278 889 611 611 611 611 389 556 333 611 556 778 556 556 500 389 280 389 584'.split(' ').map(Number);
+function textWidth(s, size, bold){
+  const tab = bold ? HB : HW;
+  const str = winAnsi(s);
+  let w = 0;
+  for(let i=0;i<str.length;i++){
+    const c = str.charCodeAt(i);
+    w += (c >= 32 && c <= 126) ? tab[c-32] : 556;
+  }
+  return w * size / 1000;
+}
+function pdfStr(s){ return winAnsi(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)'); }
+
+function PDF(){
+  const pages = [];
+  let cur = null;
+  const api = {
+    page(){ cur = []; pages.push(cur); return api; },
+    text(x, y, s, o){
+      o = o || {};
+      const size = o.size || 10, bold = !!o.bold, col = o.color || [0,0,0];
+      let px = x;
+      if(o.align === 'right')       px = x - textWidth(s, size, bold);
+      else if(o.align === 'center') px = x - textWidth(s, size, bold)/2;
+      cur.push('BT /F' + (bold?2:1) + ' ' + size + ' Tf ' + col[0] + ' ' + col[1] + ' ' + col[2] + ' rg ' +
+               px.toFixed(2) + ' ' + (PDF_H - y).toFixed(2) + ' Td (' + pdfStr(s) + ') Tj ET');
+      return api;
+    },
+    line(x1, y1, x2, y2, o){
+      o = o || {}; const c = o.color || [0.85,0.87,0.85];
+      cur.push(c[0] + ' ' + c[1] + ' ' + c[2] + ' RG ' + (o.w || 0.6) + ' w ' +
+               x1.toFixed(2) + ' ' + (PDF_H-y1).toFixed(2) + ' m ' + x2.toFixed(2) + ' ' + (PDF_H-y2).toFixed(2) + ' l S');
+      return api;
+    },
+    rect(x, y, w, h, o){
+      o = o || {}; const c = o.fill || [0.94,0.95,0.94];
+      cur.push(c[0] + ' ' + c[1] + ' ' + c[2] + ' rg ' +
+               x.toFixed(2) + ' ' + (PDF_H-y-h).toFixed(2) + ' ' + w.toFixed(2) + ' ' + h.toFixed(2) + ' re f');
+      return api;
+    },
+    build(title){
+      const n = pages.length;
+      const objs = [];
+      const kids = [];
+      for(let i=0;i<n;i++) kids.push((6 + 2*i) + ' 0 R');
+      objs[0] = '<< /Type /Catalog /Pages 2 0 R >>';
+      objs[1] = '<< /Type /Pages /Count ' + n + ' /Kids [' + kids.join(' ') + '] >>';
+      objs[2] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+      objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+      for(let i=0;i<n;i++){
+        const stream = pages[i].join('\n');
+        objs[4 + 2*i] = '<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream';
+        objs[5 + 2*i] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PDF_W.toFixed(2) + ' ' + PDF_H.toFixed(2) +
+                        '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + (5 + 2*i) + ' 0 R >>';
+      }
+      let out = '%PDF-1.4\n%âãÏÓ\n';
+      const offs = [];
+      objs.forEach((o,i)=>{ offs.push(out.length); out += (i+1) + ' 0 obj\n' + o + '\nendobj\n'; });
+      const xref = out.length;
+      out += 'xref\n0 ' + (objs.length+1) + '\n0000000000 65535 f \n';
+      offs.forEach(o=>{ out += ('0000000000' + o).slice(-10) + ' 00000 n \n'; });
+      out += 'trailer\n<< /Size ' + (objs.length+1) + ' /Root 1 0 R /Info << /Title (' + pdfStr(title) +
+             ') /Producer (Salon Kasse) >> >>\nstartxref\n' + xref + '\n%%EOF';
+      const bytes = new Uint8Array(out.length);
+      for(let i=0;i<out.length;i++) bytes[i] = out.charCodeAt(i) & 0xFF;
+      return bytes;
+    }
+  };
+  return api;
+}
+
+/* ---------- der eigentliche Bericht ---------- */
+function buildReport(range, label, detailed){
+  const r   = range || ['0000-01-01','9999-12-31'];
+  const ent = S.entries.filter(e=>inRange(e.d,r)).sort((a,b)=> a.d.localeCompare(b.d) || a.t.localeCompare(b.t));
+  const exp = S.expenses.filter(x=>inRange(x.d,r)).sort((a,b)=> a.d.localeCompare(b.d));
+  const pay = S.payouts.filter(p=>inRange(p.d,r)).sort((a,b)=> a.d.localeCompare(b.d));
+  const T   = totals(ent);
+  const expSum = sum(exp, x=>x.a);
+  const paidSum = sum(pay.filter(p=>p.s==='paid'), p=>p.a);
+  const openSum = sum(pay.filter(p=>p.s==='open'), p=>p.a);
+
+  const M = 46, R = PDF_W - M;
+  const BRASS = [0.54,0.38,0.09], MUTED = [0.44,0.49,0.47], LIGHT = [0.62,0.66,0.64];
+  const doc = PDF();
+  let y = 0, page = 0;
+  let cont = null;   // Tabellenkopf, der auf Folgeseiten wiederholt wird
+
+  function footer(){
+    doc.line(M, PDF_H-48, R, PDF_H-48);
+    doc.text(M, PDF_H-36, (S.settings.shop || 'Salon Kasse') + ' – Kassenbericht', {size:8, color:LIGHT});
+    doc.text(R, PDF_H-36, 'Seite ' + page, {size:8, align:'right', color:LIGHT});
+  }
+  function header(){
+    if(page) footer();
+    page++; doc.page(); y = M + 4;
+    doc.text(M, y, S.settings.shop || 'Salon Kasse', {size:17, bold:true});
+    doc.text(R, y, 'KASSENBERICHT', {size:9, bold:true, align:'right', color:BRASS});
+    y += 15;
+    doc.text(M, y, label, {size:10.5, color:MUTED});
+    const nw = new Date();
+    doc.text(R, y, 'erstellt am ' + pad2(nw.getDate()) + '.' + pad2(nw.getMonth()+1) + '.' + nw.getFullYear(),
+             {size:8.5, align:'right', color:LIGHT});
+    y += 9;
+    doc.line(M, y, R, y, {w:1.2, color:BRASS});
+    y += 26;
+    if(cont){
+      doc.text(M, y, cont.t + ' (FORTSETZUNG)', {size:9, bold:true, color:BRASS});
+      y += 6; doc.line(M, y, R, y); y += 15;
+      drawRow(cont.c, {bold:true, size:8.5, color:MUTED});
+    }
+  }
+  function need(h){ if(y + h > PDF_H - 66) header(); }
+  function h2(t){
+    need(46);
+    doc.text(M, y, t, {size:9, bold:true, color:BRASS});
+    y += 6; doc.line(M, y, R, y); y += 15;
+  }
+  function drawRow(cells, o){
+    o = o || {};
+    if(o.fill){ doc.rect(M-8, y-11, R-M+16, o.h || 16, {fill:o.fill}); }
+    cells.forEach(c=> doc.text(c[1], y, c[0], {
+      size: o.size || 9.5, bold: o.bold || c[3], align: c[2], color: o.color
+    }));
+    y += o.h || 16;
+  }
+  function row(cells, o){ need((o && o.h) || 16); drawRow(cells, o); }
+  function table(t, c){ h2(t); cont = {t, c}; drawRow(c, {bold:true, size:8.5, color:MUTED}); }
+  function endTable(){ cont = null; }
+  function note(t){ need(16); doc.text(M, y, t, {size:9.5, color:MUTED}); y += 16; }
+
+  header();
+
+  /* Kennzahlen */
+  doc.rect(M-8, y-16, R-M+16, 66, {fill:[0.945,0.955,0.945]});
+  doc.text(M, y, 'UMSATZ GESAMT', {size:8, bold:true, color:MUTED});
+  doc.text(M, y+26, eur(T.total), {size:22, bold:true});
+  const stat = (x, k, v, sub)=>{
+    doc.text(x, y, k, {size:8, bold:true, color:MUTED});
+    doc.text(x, y+18, v, {size:12, bold:true});
+    if(sub) doc.text(x, y+32, sub, {size:8, color:LIGHT});
+  };
+  stat(M+250, 'BAR',    eur(T.bar),   T.total ? Math.round(T.bar/T.total*100) + ' %' : '');
+  stat(M+360, 'KARTE',  eur(T.karte), T.total ? Math.round(T.karte/T.total*100) + ' %' : '');
+  stat(M+462, 'KUNDEN', String(T.count), T.count ? 'im Schnitt ' + eur(Math.round(T.total/T.count)) : '');
+  y += 66;
+
+  if(!ent.length && !exp.length && !pay.length){
+    note('In diesem Zeitraum wurde nichts erfasst.');
+    footer();
+    return doc.build('Kassenbericht ' + label);
+  }
+
+  /* Umsatz nach Friseur */
+  const perB = S.barbers.map(b=>({b, t: totals(ent.filter(e=>e.b===b.id))}))
+                        .filter(x=>x.t.count>0)
+                        .sort((a,b)=> b.t.total - a.t.total);
+  if(perB.length){
+    table('UMSATZ NACH FRISEUR',
+      [['Friseur',M],['Kunden',M+270,'right'],['Bar',M+360,'right'],['Karte',M+440,'right'],['Umsatz',R,'right']]);
+    perB.forEach(x=> row([
+      [x.b.name + (x.b.me ? ' (ich)' : ''), M],
+      [String(x.t.count), M+270, 'right'],
+      [eur(x.t.bar), M+360, 'right'],
+      [eur(x.t.karte), M+440, 'right'],
+      [eur(x.t.total), R, 'right', true]
+    ]));
+    row([['Gesamt',M,null,true],[String(T.count),M+270,'right',true],[eur(T.bar),M+360,'right',true],
+         [eur(T.karte),M+440,'right',true],[eur(T.total),R,'right',true]],
+        {fill:[0.945,0.955,0.945], h:18});
+    endTable(); y += 14;
+  }
+
+  /* Gehalt */
+  const perP = S.barbers.map(b=>{
+    const mine = pay.filter(p=>p.b===b.id);
+    return { b,
+      paid: sum(mine.filter(p=>p.s==='paid'), p=>p.a),
+      open: sum(mine.filter(p=>p.s==='open'), p=>p.a),
+      openAll: sum(S.payouts.filter(p=>p.b===b.id && p.s==='open'), p=>p.a) };
+  }).filter(x=> x.paid || x.open || x.openAll);
+  if(perP.length){
+    table('GEHALT', [['Friseur',M],['Gebucht',M+300,'right'],['Ausgezahlt',M+400,'right'],['Offen',R,'right']]);
+    perP.forEach(x=> row([
+      [x.b.name + (x.b.me ? ' (ich)' : ''), M],
+      [eur(x.paid + x.open), M+300, 'right'],
+      [eur(x.paid), M+400, 'right'],
+      [eur(x.open), R, 'right', true]
+    ]));
+    row([['Gesamt',M,null,true],[eur(paidSum+openSum),M+300,'right',true],
+         [eur(paidSum),M+400,'right',true],[eur(openSum),R,'right',true]],
+        {fill:[0.945,0.955,0.945], h:18});
+    endTable();
+    const offenAlle = sum(S.payouts.filter(p=>p.s==='open'), p=>p.a);
+    if(offenAlle) note('Offen über alle Zeiträume hinweg: ' + eur(offenAlle));
+    y += 10;
+  }
+
+  /* Ausgaben */
+  if(exp.length){
+    table('AUSGABEN', [['Datum',M],['Kategorie',M+90],['Notiz',M+210],['Betrag',R,'right']]);
+    exp.forEach(x=> row([
+      [dateShort(x.d), M],
+      [x.c, M+90],
+      [(x.n || '').slice(0,40), M+210],
+      ['– ' + eur(x.a), R, 'right']
+    ]));
+    row([['Summe',M,null,true],['– ' + eur(expSum),R,'right',true]], {fill:[0.945,0.955,0.945], h:18});
+    endTable(); y += 14;
+  }
+
+  /* Ergebnis */
+  h2('ERGEBNIS');
+  row([['Umsatz', M], [eur(T.total), R, 'right']]);
+  row([['Ausgaben', M], ['– ' + eur(expSum), R, 'right']]);
+  row([['Gehalt ausgezahlt', M], ['– ' + eur(paidSum), R, 'right']]);
+  row([['Verbleibt', M, null, true], [eur(T.total - expSum - paidSum), R, 'right', true]],
+      {fill:[0.945,0.955,0.945], h:19, size:10.5});
+  if(openSum) note('Noch nicht ausgezahltes Gehalt in diesem Zeitraum: ' + eur(openSum));
+  y += 12;
+
+  /* Tagesübersicht */
+  const byDay = {};
+  ent.forEach(e=>{ (byDay[e.d] = byDay[e.d] || []).push(e); });
+  const days = Object.keys(byDay).sort();
+  if(days.length > 1){
+    table('NACH TAGEN',
+      [['Tag',M],['Kunden',M+270,'right'],['Bar',M+360,'right'],['Karte',M+440,'right'],['Umsatz',R,'right']]);
+    days.forEach(d=>{
+      const t = totals(byDay[d]);
+      row([[dateShort(d), M], [String(t.count), M+270,'right'], [eur(t.bar), M+360,'right'],
+           [eur(t.karte), M+440,'right'], [eur(t.total), R,'right']]);
+    });
+    endTable(); y += 14;
+  }
+
+  /* Einzelbuchungen */
+  if(detailed && ent.length){
+    header();
+    table('EINZELBUCHUNGEN',
+      [['Datum',M],['Zeit',M+78],['Friseur',M+126],['Notiz',M+226],['Zahlart',M+400],['Betrag',R,'right']]);
+    ent.forEach(e=> row([
+      [dateShort(e.d), M],
+      [e.t, M+78],
+      [bname(e.b).slice(0,14), M+126],
+      [(e.n || 'Kunde').slice(0,28), M+226],
+      [e.p === 'bar' ? 'Bar' : 'Karte', M+400],
+      [eur(e.a), R, 'right']
+    ], {h:14, size:9}));
+    row([['Summe – ' + ent.length + ' Buchungen', M, null, true], [eur(T.total), R, 'right', true]],
+        {fill:[0.945,0.955,0.945], h:18});
+    endTable();
+  }
+
+  footer();
+  return doc.build('Kassenbericht ' + label);
+}
+
+function downloadBytes(name, bytes, mime){
+  try{
+    const blob = new Blob([bytes], {type: mime});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch(e){} a.remove(); }, 4000);
+    toast(name + ' gespeichert');
+    return true;
+  }catch(e){ toast('Speichern nicht möglich'); return false; }
+}
+
+function exportPDF(range, label, detailed){
+  const bytes = buildReport(range, label, detailed);
+  const slug = (label || 'gesamt').replace(/[^0-9A-Za-zÄÖÜäöü]+/g,'-').replace(/^-|-$/g,'').toLowerCase();
+  downloadBytes('kassenbericht-' + slug + '.pdf', bytes, 'application/pdf');
+}
+
+function sheetExport(range, label){
+  const body = `
+    <p class="hintline" style="margin:-4px 0 16px">Zeitraum: <strong>${esc(label)}</strong></p>
+    <button class="btn primary block" data-pdf>PDF-Bericht</button>
+    <p class="hintline" style="margin:7px 2px 14px">Umsatz, Bar/Karte, Friseure, Gehalt, Ausgaben und Ergebnis auf einen Blick.</p>
+    <button class="btn block" data-pdfall>PDF mit allen Buchungen</button>
+    <p class="hintline" style="margin:7px 2px 14px">Zusätzlich jede einzelne Buchung – für den Steuerberater.</p>
+    <button class="btn block" data-csv2>CSV-Datei für Excel</button>
+    ${EMBEDDED ? '<p class="hintline" style="margin:14px 0 0;text-align:center">Das Speichern von Dateien funktioniert in der installierten App. In dieser Web-Vorschau ist es vom Browser gesperrt.</p>' : ''}`;
+  openSheet('Exportieren', body, {onMount(root){
+    root.querySelector('[data-pdf]').onclick    = ()=>{ closeSheet(); exportPDF(range, label, false); };
+    root.querySelector('[data-pdfall]').onclick = ()=>{ closeSheet(); exportPDF(range, label, true); };
+    root.querySelector('[data-csv2]').onclick   = ()=>{ closeSheet(); exportCSV(range); };
+  }});
+}
+
+/* ============================================================
    Boot
    ============================================================ */
 if(!S){ S = defaultState(); save(); }
@@ -1466,6 +1938,15 @@ document.addEventListener('dblclick', e=> e.preventDefault(), {passive:false});
 render();
 if(!S.settings.onboarded) setTimeout(()=> sheetSetup(true), 400);
 registerSW();
+recoverFromIDB();
+refreshStorageInfo();
+idbPut('state', S);
+if(typeof navigator!=='undefined' && navigator.storage && navigator.storage.persisted){
+  navigator.storage.persisted()
+    .then(p=>{ storageInfo.persisted = p; return p ? p : (navigator.storage.persist ? navigator.storage.persist() : false); })
+    .then(p=>{ storageInfo.persisted = p; })
+    .catch(()=>{});
+}
 
 </script>
 </body>
