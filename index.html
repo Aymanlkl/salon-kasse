@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Salon Kasse">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=Instrument+Serif:ital@0;1&family=Noto+Sans+Arabic:wght@400..700&display=swap">
 <style>
 /* ============================================================
    Salon Kasse — Design tokens
@@ -60,7 +60,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{
   margin:0;background:var(--ground);color:var(--ink);
-  font-family:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-family:'Archivo','Noto Sans Arabic',system-ui,-apple-system,'Segoe UI',sans-serif;
   font-size:15px;line-height:1.45;
   touch-action:manipulation;
   -webkit-user-select:none;user-select:none;
@@ -148,7 +148,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .rows{display:flex;flex-direction:column}
 .row{
   display:flex;align-items:center;gap:11px;padding:12px 15px;
-  border-top:1px solid var(--line);text-align:left;width:100%;
+  border-top:1px solid var(--line);text-align:start;width:100%;
 }
 .rows .row:first-child{border-top:0}
 .row:active{background:var(--surface-2)}
@@ -315,7 +315,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 }
 .field input:focus,.field textarea:focus{outline:none;border-color:var(--brass);background:var(--surface)}
 .hintline{font-size:12.5px;color:var(--ink-3);line-height:1.5}
-.linkbtn{font-size:13px;font-weight:600;color:var(--brass);padding:6px 0}
+.linkbtn{display:block;width:100%;text-align:start;font-size:13px;font-weight:600;color:var(--brass);padding:7px 0}
 
 .toast{
   position:fixed;left:50%;transform:translate(-50%,14px);bottom:calc(env(safe-area-inset-bottom) + 78px);
@@ -325,8 +325,19 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 }
 .toast.in{opacity:1;transform:translate(-50%,0)}
 
-.wordmark{font-family:'Instrument Serif',Georgia,serif;font-size:30px;line-height:1;letter-spacing:-.01em}
+.wordmark{font-family:'Instrument Serif','Noto Sans Arabic',Georgia,serif;font-size:30px;line-height:1;letter-spacing:-.01em}
 .wordmark em{font-style:italic;color:var(--brass)}
+
+/* --- Arabisch: von rechts nach links; Zahlen bleiben lateinisch --- */
+[dir="rtl"] .money,[dir="rtl"] .num,[dir="rtl"] .amt,[dir="rtl"] .row .lead,
+[dir="rtl"] .kv .v,[dir="rtl"] .brow .vl,[dir="rtl"] .chip .v,[dir="rtl"] .hero-fig,
+[dir="rtl"] .amt-display,[dir="rtl"] .pad,[dir="rtl"] input[type="date"]{
+  direction:ltr;unicode-bidi:isolate;
+}
+[dir="rtl"] .kv .v,[dir="rtl"] .brow .vl,[dir="rtl"] .amt{text-align:right}
+[dir="rtl"] .chip .v,[dir="rtl"] .hero-fig,[dir="rtl"] .row .lead{text-align:left}
+[dir="rtl"] .eyebrow{letter-spacing:0}
+[dir="rtl"] .backup-card{text-align:right}
 
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.01ms !important;transition-duration:.01ms !important}
@@ -445,7 +456,7 @@ function recoverFromIDB(){
     S = data;
     try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
     render();
-    toast('Daten aus dem Gerätespeicher wiederhergestellt');
+    toast(tr('t_recovered'));
   });
 }
 
@@ -455,11 +466,16 @@ function askPersist(){
     return Promise.resolve(false);
   return navigator.storage.persist().then(ok=>{
     storageInfo.persisted = ok;
-    toast(ok ? 'Dauerhafte Speicherung ist aktiv' : 'Der Browser hat es abgelehnt – bitte Backups machen');
+    toast(ok ? tr('t_persist_on') : tr('t_persist_no'));
     if(ui.tab==='mehr') render();
     return ok;
   }).catch(()=> false);
 }
+function setLang(k){
+  if(!LANGS[k] || k === LANG) return;
+  LANG = k; S.settings.lang = k; save(); applyLang(); render(); buzz(8);
+}
+
 function refreshStorageInfo(){
   const st = (typeof navigator!=='undefined' && navigator.storage) ? navigator.storage : null;
   const jobs = [];
@@ -474,22 +490,22 @@ function sheetSnapshots(){
   idbGet('snapshots').then(list=>{
     list = Array.isArray(list) ? list.slice().reverse() : [];
     const body = list.length ? `
-      <p class="hintline" style="margin:-4px 0 14px">Die App legt jeden Tag automatisch einen Stand im Gerät ab. Tippe einen an, um ihn zurückzuholen.</p>
+      <p class="hintline" style="margin:-4px 0 14px">${tr('snaps_hint')}</p>
       <section class="card" style="box-shadow:none"><div class="rows">${list.map((s,i)=>`
         <button class="row" data-sn="${i}">
-          <span class="main"><span class="t1">${dateLabel(s.d)}</span><span class="t2">${s.n} Umsätze</span></span>
-          <span class="amt money" style="font-size:13px;color:var(--ink-3)">zurückholen</span>
+          <span class="main"><span class="t1">${dateLabel(s.d)}</span><span class="t2">${tr('n_revenues', s.n)}</span></span>
+          <span class="amt money" style="font-size:13px;color:var(--ink-3)">${tr('restore_l')}</span>
         </button>`).join('')}</div></section>`
-      : '<p class="hintline">Noch keine Wiederherstellungspunkte vorhanden. Sie entstehen automatisch, sobald du Einträge speicherst.</p>';
-    openSheet('Wiederherstellungspunkte', body, {onMount(root){
+      : `<p class="hintline">${tr('no_snaps')}</p>`;
+    openSheet(tr('snapshots'), body, {onMount(root){
       root.querySelectorAll('[data-sn]').forEach(b=> b.onclick = ()=>{
         const snap = list[+b.dataset.sn];
-        openSheet('Stand zurückholen?', `<p class="hintline">Stand vom <strong>${dateLabel(snap.d)}</strong> mit ${snap.n} Umsätzen. Alles, was du seitdem eingetragen hast, geht dabei verloren.</p>
-          <button class="btn primary block" data-yes style="margin-top:14px">Ja, diesen Stand laden</button>
-          <button class="btn ghost block" data-no style="margin-top:10px">Abbrechen</button>`,
+        openSheet(tr('sh_snap_q'), `<p class="hintline">${tr('snap_txt', dateLabel(snap.d), snap.n)}</p>
+          <button class="btn primary block" data-yes style="margin-top:14px">${tr('yes_snap')}</button>
+          <button class="btn ghost block" data-no style="margin-top:10px">${tr('cancel')}</button>`,
           {onMount(r2){
             r2.querySelector('[data-yes]').onclick = ()=>{
-              S = snap.s; save(); closeSheet(); render(); toast('Stand wiederhergestellt');
+              S = snap.s; save(); closeSheet(); render(); toast(tr('t_snap_restored'));
             };
             r2.querySelector('[data-no]').onclick = ()=> closeSheet();
           }});
@@ -499,11 +515,378 @@ function sheetSnapshots(){
 }
 
 /* ============================================================
+   Sprachen – Deutsch, Französisch, Arabisch
+   Wichtig: Exporte (PDF und CSV) bleiben immer deutsch,
+   dafür sorgt inGerman() weiter unten.
+   ============================================================ */
+const LANGS = { de:'Deutsch', fr:'Français', ar:'العربية' };
+const CAL = {
+  de:{ wd:['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'],
+       wds:['So','Mo','Di','Mi','Do','Fr','Sa'],
+       mon:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'], sep:', ' },
+  fr:{ wd:['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'],
+       wds:['dim','lun','mar','mer','jeu','ven','sam'],
+       mon:['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'], sep:' ' },
+  ar:{ wd:['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'],
+       wds:['أحد','اثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'],
+       mon:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'], sep:' ' }
+};
+const NUMLOC = { de:'de-DE', fr:'fr-FR', ar:'de-DE' };
+
+const DICT = {
+de:{
+ tab_today:'Heute', tab_team:'Team', tab_cash:'Kasse', tab_report:'Bericht', tab_more:'Mehr',
+ hd_today:'Meine Kunden', more_sub:'Friseure, Auszahlungen, Daten',
+ a_prevday:'Tag zurück', a_nextday:'Tag vor', a_prev:'zurück', a_next:'vor', today:'heute',
+ closed:'abgeschlossen', bar:'Bar', card:'Karte', me:'ich', all:'Alle',
+ cust_1:'Kunde', cust_n:'Kunden', customer:'Kunde', entries:'Einträge',
+ no_entries:'Noch keine Einträge', no_entries_hint:'Tippe unten auf „Kunde“ und gib den Betrag ein.',
+ revenue_on:'Umsatz {0}', team_on:'Team {0}', by_barber:'Nach Friseur',
+ line_barber:'{0} Kunden · Bar {1} · Karte {2}',
+ sec_backup:'Sicherung', no_backup_yet:'Noch kein Backup gemacht', last_backup_days:'Letztes Backup vor {0} Tagen',
+ backup_tap:'Antippen und die Sicherungsdatei speichern.',
+ total_rev_on:'Gesamtumsatz {0}', rev_by_barber:'Umsatz nach Friseur', total_revenue:'Umsatz gesamt',
+ expenses:'Ausgaben', add_expense:'+ Ausgabe', no_expenses_today:'Heute keine Ausgaben', day_result:'Tagesergebnis',
+ salary_today:'Gehalt heute', tap_to_enter:'tippen zum Eintragen',
+ paid_out:'ausgezahlt', still_open:'noch offen', not_entered:'noch nicht eingetragen',
+ paid:'bezahlt', open:'offen', no_barbers:'Keine Friseure aktiv',
+ in_till:'In der Kasse', till_line:'Bar eingenommen <strong class="num">{0}</strong> · bar ausgezahltes Gehalt <strong class="num">{1}</strong> · Ausgaben <strong class="num">{2}</strong>',
+ till_calc:'Rechnerischer Bar-Bestand',
+ r_day:'Tag', r_week:'Woche', r_month:'Monat', r_year:'Jahr', cw:'KW {0}', year_n:'Jahr {0}',
+ rev_period:'Umsatz · {0}', revenue:'Umsatz', expenses_n:'Ausgaben ({0})',
+ salary_paid:'Gehalt ausgezahlt', remains:'Verbleibt',
+ rev_per_barber:'Umsatz pro Friseur', no_rev_period:'Keine Umsätze in diesem Zeitraum',
+ pct_cust:'{0} % · {1} Kunden',
+ sal_paid_open:'Gehalt: bezahlt / offen', no_salary:'Keine Gehaltseinträge',
+ x_paid:'{0} bezahlt', x_open:'{0} offen', nothing_open:'nichts offen im Zeitraum',
+ open_all_time:'Offen insgesamt (alle Zeiträume):',
+ open_total:'Offen gesamt', open_total_sub:'Noch nicht ausgezahltes Gehalt über alle Tage',
+ app_sub:'Tageskasse & Gehalt · offline auf diesem Gerät', change:'ändern',
+ barbers:'Friseure', add_barber:'+ Friseur', n_entries_total:'{0} Einträge gesamt', edit:'bearbeiten',
+ sal_balance:'Gehalt-Salden', all_paid:'alles bezahlt',
+ last_payouts:'Letzte Auszahlungen', add_payout:'+ Auszahlung', no_payouts:'Noch keine Auszahlungen',
+ last_expenses:'Letzte Ausgaben', no_expenses:'Keine Ausgaben',
+ storage:'Speicher & Sicherung', persist_l:'Dauerhaft im Gerät',
+ st_active:'aktiv', st_inactive:'nicht aktiv', st_checking:'wird geprüft',
+ used_storage:'Belegter Speicher', last_backup:'Letztes Backup',
+ never:'noch nie', today_w:'heute', days_ago:'vor {0} Tagen',
+ enable_persist:'Dauerhafte Speicherung einschalten',
+ snapshots:'Wiederherstellungspunkte', snapshots_sub:'{0} automatische Stände im Gerät',
+ data:'Daten', export_report:'Bericht exportieren', export_sub:'Als PDF oder CSV – alle Daten',
+ backup_save:'Backup speichern', backup_save_sub:'Sicherungsdatei mit allen Daten',
+ backup_restore:'Backup wiederherstellen', backup_restore_sub:'Aus einer Sicherungsdatei zurückholen',
+ load_demo:'Beispieldaten laden', load_demo_sub:'Zum Ausprobieren – jederzeit wieder löschbar',
+ wipe:'Alle Daten löschen', wipe_sub:'Umsätze, Ausgaben und Gehälter zurücksetzen',
+ language:'Sprache', export_lang_note:'PDF- und CSV-Export bleiben immer auf Deutsch – für Steuerberater und Amt.',
+ install:'App installieren',
+ install_txt:'iPhone: Safari → Teilen-Symbol → „Zum Home-Bildschirm“.<br>Android: Chrome → Menü → „App installieren“.<br>Danach startet sie im Vollbild wie eine normale App.',
+ version_line:'Version {0} · alle Daten bleiben auf diesem Gerät',
+ sh_new_entry:'Kunde erfassen', sh_edit_entry:'Eintrag bearbeiten',
+ pay_save:'speichern', pay_as_bar:'als bar', pay_as_card:'als karte', del_entry:'Eintrag löschen',
+ f_barber:'Friseur', other_barber:'Anderer Friseur: {0} ändern',
+ add_note:'+ Notiz / Kundenname', note_customer:'Notiz / Kunde', note_ph:'z. B. Schnitt + Bart',
+ sh_new_exp:'Ausgabe erfassen', sh_edit_exp:'Ausgabe bearbeiten',
+ category:'Kategorie', c_material:'Material', c_rent:'Miete', c_other:'Sonstiges',
+ note:'Notiz', ph_optional:'optional', save_expense:'Ausgabe speichern', del_l:'Löschen',
+ sh_salary:'Gehalt · {0}', sal_rev_on:'Umsatz {0} am {1}:',
+ st_paid:'Ausgezahlt', st_open:'Noch offen', save:'Speichern', remove_entry:'Eintrag entfernen',
+ sh_close:'Abschluss {0}', close_day:'Tag abschließen', reopen_day:'Tag wieder öffnen',
+ no_salary_for:'Ohne Gehaltseintrag: {0}. Du kannst trotzdem abschließen und später nachtragen.',
+ back:'Zurück',
+ sh_add_barber:'Friseur hinzufügen', sh_edit_barber:'Friseur bearbeiten',
+ name:'Name', name_ph:'z. B. Yusuf', you_are:'Das bist du. Deine Kunden erscheinen im Tab „Heute“.',
+ set_me:'Als „ich“ festlegen', del_barber:'Friseur löschen', del_barber_q:'Friseur löschen?',
+ del_barber_txt:'{0} hat {1} Einträge. Die Einträge bleiben erhalten, der Friseur verschwindet aus den Listen.',
+ yes_delete:'Ja, löschen', cancel:'Abbrechen', status_l:'Status', amount_l:'Betrag',
+ sh_payout:'Auszahlung erfassen', sh_payout_e:'Auszahlung', date:'Datum', del_payout:'Auszahlung löschen',
+ sh_welcome:'Willkommen', sh_setup:'Salon & Friseure',
+ setup_hint:'Zwei Angaben und du kannst loslegen. Alles lässt sich später unter „Mehr“ ändern.',
+ shop:'Salon', shop_ph:'z. B. Barbershop Hamza', your_name:'Dein Name', your_name_ph:'z. B. Hamza',
+ more_barbers:'Weitere Friseure', add_barber_l:'+ Friseur hinzufügen', lets_go:'Los geht’s',
+ a_remove:'Entfernen',
+ sh_export:'Exportieren', period_l:'Zeitraum:', all_data:'Alle Daten', export_period:'Zeitraum exportieren',
+ pdf_report:'PDF-Bericht', pdf_report_sub:'Umsatz, Bar/Karte, Friseure, Gehalt, Ausgaben und Ergebnis auf einen Blick.',
+ pdf_all:'PDF mit allen Buchungen', pdf_all_sub:'Zusätzlich jede einzelne Buchung – für den Steuerberater.',
+ csv_excel:'CSV-Datei für Excel',
+ embed_note:'Das Speichern von Dateien funktioniert in der installierten App. In dieser Web-Vorschau ist es vom Browser gesperrt.',
+ sh_backup:'Backup', backup_hint:'Sicherungsdatei mit allen Daten. Lege sie in iCloud oder Google Drive – damit lässt sich alles wiederherstellen.',
+ copy_text:'Text kopieren', save_file:'Als Datei speichern',
+ sh_restore_q:'Backup einspielen?',
+ restore_txt:'Die Datei enthält <strong>{0} Umsätze</strong>, {1} Ausgaben und {2} Gehaltseinträge.<br><br>Deine aktuellen Daten werden dabei <strong>ersetzt</strong>.',
+ restore_now:'Jetzt wiederherstellen',
+ sh_wipe_q:'Alle Daten löschen?',
+ wipe_txt:'Alle Umsätze, Ausgaben und Gehälter werden gelöscht. Deine Friseur-Namen und der Salon-Name bleiben erhalten.<br><br><strong>Tipp:</strong> Mache vorher ein Backup, falls du die Daten noch brauchst.',
+ yes_wipe:'Ja, alles löschen',
+ sh_update:'Neue Version', update_txt:'Eine neuere Version der App ist bereit. Deine Daten bleiben natürlich erhalten.',
+ update_now:'Jetzt aktualisieren', later:'Später',
+ snaps_hint:'Die App legt jeden Tag automatisch einen Stand im Gerät ab. Tippe einen an, um ihn zurückzuholen.',
+ no_snaps:'Noch keine Wiederherstellungspunkte vorhanden. Sie entstehen automatisch, sobald du Einträge speicherst.',
+ n_revenues:'{0} Umsätze', restore_l:'zurückholen', sh_snap_q:'Stand zurückholen?',
+ snap_txt:'Stand vom <strong>{0}</strong> mit {1} Umsätzen. Alles, was du seitdem eingetragen hast, geht dabei verloren.',
+ yes_snap:'Ja, diesen Stand laden',
+ csv_title:'CSV-Export', csv_hint:'{0} Zeilen · Semikolon-getrennt, öffnet direkt in Excel.',
+ t_saved:'Gespeichert', t_booked:'{0} gebucht · {1}', t_entry_del:'Eintrag gelöscht',
+ t_exp_saved:'Ausgabe gespeichert', t_exp_del:'Ausgabe gelöscht',
+ t_sal_paid:'Als ausgezahlt gespeichert', t_sal_open:'Als offen gespeichert',
+ t_removed:'Entfernt', t_enter_amount:'Bitte Betrag eingeben',
+ t_copied:'Kopiert', t_file_saved:'Datei gespeichert', t_dl_blocked:'Download hier blockiert – Text kopieren',
+ t_day_closed:'Tag abgeschlossen', t_day_open:'Tag wieder geöffnet',
+ t_enter_name:'Bitte Namen eingeben', t_save_first:'Erst speichern', t_now_me:'{0} ist jetzt „ich“',
+ t_deleted:'Gelöscht', t_payout_saved:'Auszahlung gespeichert',
+ t_marked_paid:'Als bezahlt markiert', t_marked_open:'Als offen markiert',
+ t_wiped:'Alles gelöscht – bereit', t_restored:'Wiederhergestellt',
+ t_not_readable:'Datei nicht lesbar', t_invalid_backup:'Keine gültige Sicherungsdatei',
+ t_have_data:'Es sind schon Daten vorhanden', t_demo_loaded:'Beispieldaten geladen',
+ t_recovered:'Daten aus dem Gerätespeicher wiederhergestellt',
+ t_persist_on:'Dauerhafte Speicherung ist aktiv', t_persist_no:'Der Browser hat es abgelehnt – bitte Backups machen',
+ t_snap_restored:'Stand wiederhergestellt', t_setup_done:'Fertig – los geht’s',
+ t_file_dl:'{0} gespeichert', t_no_save:'Speichern nicht möglich'
+},
+fr:{
+ tab_today:'Aujourd’hui', tab_team:'Équipe', tab_cash:'Caisse', tab_report:'Rapport', tab_more:'Plus',
+ hd_today:'Mes clients', more_sub:'Coiffeurs, versements, données',
+ a_prevday:'Jour précédent', a_nextday:'Jour suivant', a_prev:'précédent', a_next:'suivant', today:'aujourd’hui',
+ closed:'clôturé', bar:'Espèces', card:'Carte', me:'moi', all:'Tous',
+ cust_1:'client', cust_n:'clients', customer:'Client', entries:'Écritures',
+ no_entries:'Aucune écriture', no_entries_hint:'Appuie en bas sur « Client » et saisis le montant.',
+ revenue_on:'Recettes {0}', team_on:'Équipe {0}', by_barber:'Par coiffeur',
+ line_barber:'{0} clients · Espèces {1} · Carte {2}',
+ sec_backup:'Sauvegarde', no_backup_yet:'Aucune sauvegarde effectuée', last_backup_days:'Dernière sauvegarde il y a {0} jours',
+ backup_tap:'Appuie pour enregistrer le fichier de sauvegarde.',
+ total_rev_on:'Recettes totales {0}', rev_by_barber:'Recettes par coiffeur', total_revenue:'Recettes totales',
+ expenses:'Dépenses', add_expense:'+ Dépense', no_expenses_today:'Aucune dépense aujourd’hui', day_result:'Résultat du jour',
+ salary_today:'Salaire du jour', tap_to_enter:'appuyer pour saisir',
+ paid_out:'versé', still_open:'en attente', not_entered:'pas encore saisi',
+ paid:'payé', open:'en attente', no_barbers:'Aucun coiffeur actif',
+ in_till:'Dans la caisse', till_line:'Espèces encaissées <strong class="num">{0}</strong> · salaires versés en espèces <strong class="num">{1}</strong> · dépenses <strong class="num">{2}</strong>',
+ till_calc:'Solde théorique en espèces',
+ r_day:'Jour', r_week:'Semaine', r_month:'Mois', r_year:'Année', cw:'Sem. {0}', year_n:'Année {0}',
+ rev_period:'Recettes · {0}', revenue:'Recettes', expenses_n:'Dépenses ({0})',
+ salary_paid:'Salaires versés', remains:'Il reste',
+ rev_per_barber:'Recettes par coiffeur', no_rev_period:'Aucune recette sur cette période',
+ pct_cust:'{0} % · {1} clients',
+ sal_paid_open:'Salaire : payé / en attente', no_salary:'Aucune écriture de salaire',
+ x_paid:'{0} payé', x_open:'{0} en attente', nothing_open:'rien en attente sur la période',
+ open_all_time:'En attente au total (toutes périodes) :',
+ open_total:'En attente au total', open_total_sub:'Salaire pas encore versé, tous jours confondus',
+ app_sub:'Caisse du jour & salaires · hors ligne sur cet appareil', change:'modifier',
+ barbers:'Coiffeurs', add_barber:'+ Coiffeur', n_entries_total:'{0} écritures au total', edit:'modifier',
+ sal_balance:'Soldes de salaire', all_paid:'tout est payé',
+ last_payouts:'Derniers versements', add_payout:'+ Versement', no_payouts:'Aucun versement',
+ last_expenses:'Dernières dépenses', no_expenses:'Aucune dépense',
+ storage:'Stockage & sauvegarde', persist_l:'Stockage permanent',
+ st_active:'actif', st_inactive:'inactif', st_checking:'vérification',
+ used_storage:'Espace utilisé', last_backup:'Dernière sauvegarde',
+ never:'jamais', today_w:'aujourd’hui', days_ago:'il y a {0} jours',
+ enable_persist:'Activer le stockage permanent',
+ snapshots:'Points de restauration', snapshots_sub:'{0} états enregistrés automatiquement',
+ data:'Données', export_report:'Exporter le rapport', export_sub:'En PDF ou CSV – toutes les données',
+ backup_save:'Enregistrer une sauvegarde', backup_save_sub:'Fichier contenant toutes les données',
+ backup_restore:'Restaurer une sauvegarde', backup_restore_sub:'Récupérer depuis un fichier de sauvegarde',
+ load_demo:'Charger des données d’exemple', load_demo_sub:'Pour essayer – supprimables à tout moment',
+ wipe:'Effacer toutes les données', wipe_sub:'Remettre à zéro recettes, dépenses et salaires',
+ language:'Langue', export_lang_note:'Les exports PDF et CSV restent toujours en allemand – pour le comptable et l’administration.',
+ install:'Installer l’application',
+ install_txt:'iPhone : Safari → icône Partager → « Sur l’écran d’accueil ».<br>Android : Chrome → menu → « Installer l’application ».<br>Elle démarre ensuite en plein écran comme une vraie application.',
+ version_line:'Version {0} · les données restent sur cet appareil',
+ sh_new_entry:'Nouveau client', sh_edit_entry:'Modifier l’écriture',
+ pay_save:'enregistrer', pay_as_bar:'en espèces', pay_as_card:'par carte', del_entry:'Supprimer l’écriture',
+ f_barber:'Coiffeur', other_barber:'Autre coiffeur : modifier {0}',
+ add_note:'+ Note / nom du client', note_customer:'Note / client', note_ph:'p. ex. coupe + barbe',
+ sh_new_exp:'Nouvelle dépense', sh_edit_exp:'Modifier la dépense',
+ category:'Catégorie', c_material:'Matériel', c_rent:'Loyer', c_other:'Divers',
+ note:'Note', ph_optional:'facultatif', save_expense:'Enregistrer la dépense', del_l:'Supprimer',
+ sh_salary:'Salaire · {0}', sal_rev_on:'Recettes de {0} le {1} :',
+ st_paid:'Versé', st_open:'En attente', save:'Enregistrer', remove_entry:'Retirer l’écriture',
+ sh_close:'Clôture {0}', close_day:'Clôturer la journée', reopen_day:'Rouvrir la journée',
+ no_salary_for:'Sans écriture de salaire : {0}. Tu peux clôturer quand même et compléter plus tard.',
+ back:'Retour',
+ sh_add_barber:'Ajouter un coiffeur', sh_edit_barber:'Modifier le coiffeur',
+ name:'Nom', name_ph:'p. ex. Yusuf', you_are:'C’est toi. Tes clients apparaissent dans l’onglet « Aujourd’hui ».',
+ set_me:'Définir comme « moi »', del_barber:'Supprimer le coiffeur', del_barber_q:'Supprimer le coiffeur ?',
+ del_barber_txt:'{0} a {1} écritures. Elles seront conservées, seul le coiffeur disparaît des listes.',
+ yes_delete:'Oui, supprimer', cancel:'Annuler', status_l:'Statut', amount_l:'Montant',
+ sh_payout:'Nouveau versement', sh_payout_e:'Versement', date:'Date', del_payout:'Supprimer le versement',
+ sh_welcome:'Bienvenue', sh_setup:'Salon & coiffeurs',
+ setup_hint:'Deux informations et c’est parti. Tout se modifie ensuite dans « Plus ».',
+ shop:'Salon', shop_ph:'p. ex. Barbershop Hamza', your_name:'Ton nom', your_name_ph:'p. ex. Hamza',
+ more_barbers:'Autres coiffeurs', add_barber_l:'+ Ajouter un coiffeur', lets_go:'C’est parti',
+ a_remove:'Retirer',
+ sh_export:'Exporter', period_l:'Période :', all_data:'Toutes les données', export_period:'Exporter la période',
+ pdf_report:'Rapport PDF', pdf_report_sub:'Recettes, espèces/carte, coiffeurs, salaires, dépenses et résultat en un coup d’œil.',
+ pdf_all:'PDF avec toutes les écritures', pdf_all_sub:'En plus, chaque écriture détaillée – pour le comptable.',
+ csv_excel:'Fichier CSV pour Excel',
+ embed_note:'L’enregistrement de fichiers fonctionne dans l’application installée. Dans cet aperçu web, le navigateur le bloque.',
+ sh_backup:'Sauvegarde', backup_hint:'Fichier contenant toutes les données. Range-le dans iCloud ou Google Drive – il permet de tout restaurer.',
+ copy_text:'Copier le texte', save_file:'Enregistrer le fichier',
+ sh_restore_q:'Restaurer la sauvegarde ?',
+ restore_txt:'Le fichier contient <strong>{0} recettes</strong>, {1} dépenses et {2} écritures de salaire.<br><br>Tes données actuelles seront <strong>remplacées</strong>.',
+ restore_now:'Restaurer maintenant',
+ sh_wipe_q:'Effacer toutes les données ?',
+ wipe_txt:'Toutes les recettes, dépenses et salaires seront effacés. Les noms des coiffeurs et du salon sont conservés.<br><br><strong>Conseil :</strong> fais d’abord une sauvegarde si tu as encore besoin des données.',
+ yes_wipe:'Oui, tout effacer',
+ sh_update:'Nouvelle version', update_txt:'Une nouvelle version est prête. Tes données sont bien sûr conservées.',
+ update_now:'Mettre à jour', later:'Plus tard',
+ snaps_hint:'L’application enregistre automatiquement un état par jour sur l’appareil. Appuie sur l’un d’eux pour le restaurer.',
+ no_snaps:'Aucun point de restauration pour l’instant. Ils se créent dès que tu enregistres des écritures.',
+ n_revenues:'{0} recettes', restore_l:'restaurer', sh_snap_q:'Restaurer cet état ?',
+ snap_txt:'État du <strong>{0}</strong> avec {1} recettes. Tout ce que tu as saisi depuis sera perdu.',
+ yes_snap:'Oui, charger cet état',
+ csv_title:'Export CSV', csv_hint:'{0} lignes · séparées par des points-virgules, s’ouvre directement dans Excel.',
+ t_saved:'Enregistré', t_booked:'{0} enregistré · {1}', t_entry_del:'Écriture supprimée',
+ t_exp_saved:'Dépense enregistrée', t_exp_del:'Dépense supprimée',
+ t_sal_paid:'Enregistré comme versé', t_sal_open:'Enregistré comme en attente',
+ t_removed:'Retiré', t_enter_amount:'Saisis un montant',
+ t_copied:'Copié', t_file_saved:'Fichier enregistré', t_dl_blocked:'Téléchargement bloqué ici – copie le texte',
+ t_day_closed:'Journée clôturée', t_day_open:'Journée rouverte',
+ t_enter_name:'Saisis un nom', t_save_first:'Enregistre d’abord', t_now_me:'{0} est maintenant « moi »',
+ t_deleted:'Supprimé', t_payout_saved:'Versement enregistré',
+ t_marked_paid:'Marqué comme payé', t_marked_open:'Marqué comme en attente',
+ t_wiped:'Tout est effacé – prêt', t_restored:'Restauré',
+ t_not_readable:'Fichier illisible', t_invalid_backup:'Fichier de sauvegarde invalide',
+ t_have_data:'Des données existent déjà', t_demo_loaded:'Données d’exemple chargées',
+ t_recovered:'Données restaurées depuis la mémoire de l’appareil',
+ t_persist_on:'Le stockage permanent est actif', t_persist_no:'Le navigateur a refusé – pense aux sauvegardes',
+ t_snap_restored:'État restauré', t_setup_done:'Terminé – c’est parti',
+ t_file_dl:'{0} enregistré', t_no_save:'Enregistrement impossible'
+},
+ar:{
+ tab_today:'اليوم', tab_team:'الفريق', tab_cash:'الصندوق', tab_report:'التقرير', tab_more:'المزيد',
+ hd_today:'زبائني', more_sub:'الحلاقون، الدفعات، البيانات',
+ a_prevday:'اليوم السابق', a_nextday:'اليوم التالي', a_prev:'السابق', a_next:'التالي', today:'اليوم',
+ closed:'مُقفل', bar:'نقداً', card:'بطاقة', me:'أنا', all:'الكل',
+ cust_1:'زبون', cust_n:'زبائن', customer:'زبون', entries:'السجلات',
+ no_entries:'لا توجد سجلات بعد', no_entries_hint:'اضغط في الأسفل على «زبون» وأدخل المبلغ.',
+ revenue_on:'مداخيل {0}', team_on:'الفريق {0}', by_barber:'حسب الحلاق',
+ line_barber:'{0} زبائن · نقداً {1} · بطاقة {2}',
+ sec_backup:'النسخ الاحتياطي', no_backup_yet:'لم تقم بأي نسخة احتياطية بعد', last_backup_days:'آخر نسخة احتياطية منذ {0} يوماً',
+ backup_tap:'اضغط لحفظ ملف النسخة الاحتياطية.',
+ total_rev_on:'إجمالي المداخيل {0}', rev_by_barber:'المداخيل حسب الحلاق', total_revenue:'إجمالي المداخيل',
+ expenses:'المصاريف', add_expense:'+ مصروف', no_expenses_today:'لا مصاريف اليوم', day_result:'نتيجة اليوم',
+ salary_today:'أجر اليوم', tap_to_enter:'اضغط للإدخال',
+ paid_out:'مدفوع', still_open:'غير مدفوع', not_entered:'لم يُسجَّل بعد',
+ paid:'مدفوع', open:'معلّق', no_barbers:'لا يوجد حلاقون',
+ in_till:'في الصندوق', till_line:'المقبوض نقداً <strong class="num">{0}</strong> · الأجور المدفوعة نقداً <strong class="num">{1}</strong> · المصاريف <strong class="num">{2}</strong>',
+ till_calc:'الرصيد النقدي المُحتسب',
+ r_day:'يوم', r_week:'أسبوع', r_month:'شهر', r_year:'سنة', cw:'الأسبوع {0}', year_n:'سنة {0}',
+ rev_period:'المداخيل · {0}', revenue:'المداخيل', expenses_n:'المصاريف ({0})',
+ salary_paid:'الأجور المدفوعة', remains:'المتبقّي',
+ rev_per_barber:'المداخيل لكل حلاق', no_rev_period:'لا مداخيل في هذه الفترة',
+ pct_cust:'{0} ٪ · {1} زبائن',
+ sal_paid_open:'الأجر: مدفوع / معلّق', no_salary:'لا توجد سجلات أجور',
+ x_paid:'{0} مدفوع', x_open:'{0} معلّق', nothing_open:'لا شيء معلّق في هذه الفترة',
+ open_all_time:'المعلّق إجمالاً (كل الفترات):',
+ open_total:'المعلّق إجمالاً', open_total_sub:'أجر لم يُدفع بعد عبر جميع الأيام',
+ app_sub:'صندوق يومي وأجور · يعمل دون إنترنت على هذا الجهاز', change:'تغيير',
+ barbers:'الحلاقون', add_barber:'+ حلاق', n_entries_total:'{0} سجلاً إجمالاً', edit:'تعديل',
+ sal_balance:'أرصدة الأجور', all_paid:'كل شيء مدفوع',
+ last_payouts:'آخر الدفعات', add_payout:'+ دفعة', no_payouts:'لا توجد دفعات بعد',
+ last_expenses:'آخر المصاريف', no_expenses:'لا توجد مصاريف',
+ storage:'التخزين والنسخ الاحتياطي', persist_l:'تخزين دائم في الجهاز',
+ st_active:'مُفعّل', st_inactive:'غير مُفعّل', st_checking:'جارٍ التحقق',
+ used_storage:'المساحة المستعملة', last_backup:'آخر نسخة احتياطية',
+ never:'أبداً', today_w:'اليوم', days_ago:'منذ {0} يوماً',
+ enable_persist:'تفعيل التخزين الدائم',
+ snapshots:'نقاط الاستعادة', snapshots_sub:'{0} نسخ محفوظة تلقائياً في الجهاز',
+ data:'البيانات', export_report:'تصدير التقرير', export_sub:'بصيغة PDF أو CSV – كل البيانات',
+ backup_save:'حفظ نسخة احتياطية', backup_save_sub:'ملف يحتوي على كل البيانات',
+ backup_restore:'استعادة نسخة احتياطية', backup_restore_sub:'الاسترجاع من ملف نسخة احتياطية',
+ load_demo:'تحميل بيانات تجريبية', load_demo_sub:'للتجربة – يمكن حذفها في أي وقت',
+ wipe:'حذف كل البيانات', wipe_sub:'إعادة ضبط المداخيل والمصاريف والأجور',
+ language:'اللغة', export_lang_note:'تصدير PDF وCSV يبقى دائماً بالألمانية – للمحاسب والإدارة.',
+ install:'تثبيت التطبيق',
+ install_txt:'آيفون: سفاري ← رمز المشاركة ← «إضافة إلى الشاشة الرئيسية».<br>أندرويد: كروم ← القائمة ← «تثبيت التطبيق».<br>بعدها يفتح بملء الشاشة كتطبيق عادي.',
+ version_line:'الإصدار {0} · كل البيانات تبقى على هذا الجهاز',
+ sh_new_entry:'تسجيل زبون', sh_edit_entry:'تعديل السجل',
+ pay_save:'حفظ', pay_as_bar:'نقداً', pay_as_card:'بالبطاقة', del_entry:'حذف السجل',
+ f_barber:'الحلاق', other_barber:'حلاق آخر: تغيير {0}',
+ add_note:'+ ملاحظة / اسم الزبون', note_customer:'ملاحظة / زبون', note_ph:'مثال: قص + لحية',
+ sh_new_exp:'تسجيل مصروف', sh_edit_exp:'تعديل المصروف',
+ category:'الفئة', c_material:'مواد', c_rent:'كراء', c_other:'أخرى',
+ note:'ملاحظة', ph_optional:'اختياري', save_expense:'حفظ المصروف', del_l:'حذف',
+ sh_salary:'الأجر · {0}', sal_rev_on:'مداخيل {0} يوم {1}:',
+ st_paid:'مدفوع', st_open:'معلّق', save:'حفظ', remove_entry:'إزالة السجل',
+ sh_close:'إقفال {0}', close_day:'إقفال اليوم', reopen_day:'إعادة فتح اليوم',
+ no_salary_for:'بدون سجل أجر: {0}. يمكنك الإقفال الآن وإضافته لاحقاً.',
+ back:'رجوع',
+ sh_add_barber:'إضافة حلاق', sh_edit_barber:'تعديل الحلاق',
+ name:'الاسم', name_ph:'مثال: يوسف', you_are:'هذا أنت. زبائنك يظهرون في تبويب «اليوم».',
+ set_me:'تعيينه كـ«أنا»', del_barber:'حذف الحلاق', del_barber_q:'حذف الحلاق؟',
+ del_barber_txt:'لدى {0} عدد {1} سجلاً. تبقى السجلات محفوظة، ويختفي الحلاق من القوائم فقط.',
+ yes_delete:'نعم، احذف', cancel:'إلغاء', status_l:'الحالة', amount_l:'المبلغ',
+ sh_payout:'تسجيل دفعة', sh_payout_e:'دفعة', date:'التاريخ', del_payout:'حذف الدفعة',
+ sh_welcome:'مرحباً', sh_setup:'الصالون والحلاقون',
+ setup_hint:'معلومتان فقط ويمكنك البدء. كل شيء قابل للتعديل لاحقاً من «المزيد».',
+ shop:'الصالون', shop_ph:'مثال: صالون حمزة', your_name:'اسمك', your_name_ph:'مثال: حمزة',
+ more_barbers:'حلاقون آخرون', add_barber_l:'+ إضافة حلاق', lets_go:'لنبدأ',
+ a_remove:'إزالة',
+ sh_export:'تصدير', period_l:'الفترة:', all_data:'كل البيانات', export_period:'تصدير الفترة',
+ pdf_report:'تقرير PDF', pdf_report_sub:'المداخيل، نقداً/بطاقة، الحلاقون، الأجور، المصاريف والنتيجة في صفحة واحدة.',
+ pdf_all:'PDF مع كل السجلات', pdf_all_sub:'إضافةً إلى ذلك كل عملية على حدة – للمحاسب.',
+ csv_excel:'ملف CSV لإكسل',
+ embed_note:'حفظ الملفات يعمل في التطبيق المثبَّت. في هذه المعاينة على الويب يمنعه المتصفح.',
+ sh_backup:'نسخة احتياطية', backup_hint:'ملف يحتوي على كل البيانات. احفظه في iCloud أو Google Drive – به يمكن استعادة كل شيء.',
+ copy_text:'نسخ النص', save_file:'حفظ كملف',
+ sh_restore_q:'استعادة النسخة الاحتياطية؟',
+ restore_txt:'يحتوي الملف على <strong>{0} مدخولاً</strong> و{1} مصروفاً و{2} سجل أجور.<br><br>سيتم <strong>استبدال</strong> بياناتك الحالية.',
+ restore_now:'استعادة الآن',
+ sh_wipe_q:'حذف كل البيانات؟',
+ wipe_txt:'سيتم حذف كل المداخيل والمصاريف والأجور. تبقى أسماء الحلاقين واسم الصالون كما هي.<br><br><strong>نصيحة:</strong> خذ نسخة احتياطية أولاً إن كنت ما زلت تحتاج البيانات.',
+ yes_wipe:'نعم، احذف الكل',
+ sh_update:'إصدار جديد', update_txt:'إصدار أحدث من التطبيق جاهز. بياناتك تبقى محفوظة بالطبع.',
+ update_now:'تحديث الآن', later:'لاحقاً',
+ snaps_hint:'يحفظ التطبيق تلقائياً نسخة كل يوم في الجهاز. اضغط على إحداها لاستعادتها.',
+ no_snaps:'لا توجد نقاط استعادة بعد. تُنشأ تلقائياً بمجرد حفظ السجلات.',
+ n_revenues:'{0} مدخولاً', restore_l:'استعادة', sh_snap_q:'استعادة هذه النسخة؟',
+ snap_txt:'نسخة يوم <strong>{0}</strong> تحتوي على {1} مدخولاً. كل ما أدخلته بعدها سيضيع.',
+ yes_snap:'نعم، حمّل هذه النسخة',
+ csv_title:'تصدير CSV', csv_hint:'{0} سطراً · مفصولة بفاصلة منقوطة، تُفتح مباشرة في إكسل.',
+ t_saved:'تم الحفظ', t_booked:'تم تسجيل {0} · {1}', t_entry_del:'تم حذف السجل',
+ t_exp_saved:'تم حفظ المصروف', t_exp_del:'تم حذف المصروف',
+ t_sal_paid:'حُفظ كمدفوع', t_sal_open:'حُفظ كمعلّق',
+ t_removed:'تمت الإزالة', t_enter_amount:'أدخل المبلغ من فضلك',
+ t_copied:'تم النسخ', t_file_saved:'تم حفظ الملف', t_dl_blocked:'التنزيل محظور هنا – انسخ النص',
+ t_day_closed:'تم إقفال اليوم', t_day_open:'تمت إعادة فتح اليوم',
+ t_enter_name:'أدخل الاسم من فضلك', t_save_first:'احفظ أولاً', t_now_me:'{0} أصبح «أنا» الآن',
+ t_deleted:'تم الحذف', t_payout_saved:'تم حفظ الدفعة',
+ t_marked_paid:'تم وضع علامة مدفوع', t_marked_open:'تم وضع علامة معلّق',
+ t_wiped:'تم حذف كل شيء – جاهز', t_restored:'تمت الاستعادة',
+ t_not_readable:'تعذّرت قراءة الملف', t_invalid_backup:'ملف نسخة احتياطية غير صالح',
+ t_have_data:'توجد بيانات بالفعل', t_demo_loaded:'تم تحميل البيانات التجريبية',
+ t_recovered:'تمت استعادة البيانات من ذاكرة الجهاز',
+ t_persist_on:'التخزين الدائم مُفعّل', t_persist_no:'رفض المتصفح ذلك – خذ نسخاً احتياطية',
+ t_snap_restored:'تمت استعادة النسخة', t_setup_done:'تم – لنبدأ',
+ t_file_dl:'تم حفظ {0}', t_no_save:'تعذّر الحفظ'
+}
+};
+
+let LANG = (S && S.settings && LANGS[S.settings.lang]) ? S.settings.lang : 'de';
+function tr(k, a, b, c){
+  let s = (DICT[LANG] && DICT[LANG][k] !== undefined) ? DICT[LANG][k] : DICT.de[k];
+  if(s === undefined) return k;
+  if(a !== undefined) s = s.split('{0}').join(a);
+  if(b !== undefined) s = s.split('{1}').join(b);
+  if(c !== undefined) s = s.split('{2}').join(c);
+  return s;
+}
+const isRTL = () => LANG === 'ar';
+/* Exporte laufen immer auf Deutsch – Datum, Monatsnamen und Zahlenformat. */
+function inGerman(fn){
+  const prev = LANG;
+  LANG = 'de';
+  try{ return fn(); } finally { LANG = prev; }
+}
+function applyLang(){
+  try{
+    document.documentElement.lang = LANG;
+    document.documentElement.dir = isRTL() ? 'rtl' : 'ltr';
+  }catch(e){}
+}
+
+/* ============================================================
    Date + money helpers
    ============================================================ */
-const WD = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
-const WD_S = ['So','Mo','Di','Mi','Do','Fr','Sa'];
-const MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const cal = () => CAL[LANG] || CAL.de;
 
 const pad2 = n => String(n).padStart(2,'0');
 const iso = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
@@ -511,18 +894,29 @@ const fromISO = s => { const [y,m,dd]=s.split('-').map(Number); return new Date(
 const todayISO = () => iso(new Date());
 const addDays = (s,n) => { const d=fromISO(s); d.setDate(d.getDate()+n); return iso(d); };
 
-const eurFmt = new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
-const eur = c => eurFmt.format((c||0)/100) + ' €';
-const eur0 = c => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(Math.round((c||0)/100)) + ' €';
+const _nfCache = {};
+function nf(withCents){
+  const loc = NUMLOC[LANG] || 'de-DE';
+  const key = loc + (withCents ? '|2' : '|0');
+  return _nfCache[key] || (_nfCache[key] = new Intl.NumberFormat(loc,
+    withCents ? {minimumFractionDigits:2, maximumFractionDigits:2} : {maximumFractionDigits:0}));
+}
+const eur  = c => nf(true).format((c||0)/100) + ' €';
+const eurShort = c => (c % 100 === 0) ? eur0(c) : eur(c);   // 16 € bzw. 15,50 €
+const eur0 = c => nf(false).format(Math.round((c||0)/100)) + ' €';
 
 function dateLabel(s){
   const d = fromISO(s);
-  return `${WD[d.getDay()]}, ${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.${d.getFullYear()}`;
+  return `${cal().wd[d.getDay()]}${cal().sep}${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.${d.getFullYear()}`;
 }
 function dateShort(s){
   const d = fromISO(s);
-  return `${WD_S[d.getDay()]} ${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.`;
+  return `${cal().wds[d.getDay()]} ${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.`;
 }
+const CATS = ['Material','Miete','Sonstiges'];
+const catLabel = c => c==='Material' ? tr('c_material')
+                    : c==='Miete'    ? tr('c_rent')
+                    : c==='Sonstiges'? tr('c_other') : c;
 function esc(s){
   return String(s==null?'':s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
@@ -742,17 +1136,17 @@ function sheetEntry(entry, defBarber, showPicker){
 
   const body = `
     <div class="amt-display" id="ad">${amt.display()}</div>
-    <div class="quick">${q.map(c=>`<button data-q="${c}">${eur0(c)}</button>`).join('')}</div>
+    <div class="quick">${q.map(c=>`<button data-q="${c}">${eurShort(c)}</button>`).join('')}</div>
     ${padHTML()}
     <div id="extra" style="margin-top:12px"></div>
     <div class="pay2">
-      <button class="pay-btn b" data-p="bar"><span>Bar</span><span class="sub">${isNew?'speichern':'als bar'}</span></button>
-      <button class="pay-btn k" data-p="karte"><span>Karte</span><span class="sub">${isNew?'speichern':'als karte'}</span></button>
+      <button class="pay-btn b" data-p="bar"><span>${tr('bar')}</span><span class="sub">${isNew?tr('pay_save'):tr('pay_as_bar')}</span></button>
+      <button class="pay-btn k" data-p="karte"><span>${tr('card')}</span><span class="sub">${isNew?tr('pay_save'):tr('pay_as_card')}</span></button>
     </div>
-    ${isNew?'':'<button class="btn danger block" data-del style="margin-top:10px">Eintrag löschen</button>'}
+    ${isNew?'':`<button class="btn danger block" data-del style="margin-top:10px">${tr('del_entry')}</button>`}
   `;
 
-  openSheet(isNew ? 'Kunde erfassen' : 'Eintrag bearbeiten', body, {onMount(root){
+  openSheet(isNew ? tr('sh_new_entry') : tr('sh_edit_entry'), body, {onMount(root){
     const ad = root.querySelector('#ad');
     const extra = root.querySelector('#extra');
     const sync = ()=>{
@@ -761,11 +1155,11 @@ function sheetEntry(entry, defBarber, showPicker){
     };
     const drawExtra = ()=>{
       extra.innerHTML = `
-        ${pickerOpen ? `<div class="field"><label>Friseur</label><div class="bchips">${
-          S.barbers.map(b=>`<button class="bchip" data-b="${b.id}" aria-pressed="${b.id===bId}">${esc(b.name)}${b.me?' · ich':''}</button>`).join('')
-        }</div></div>` : (isNew && !showPicker ? `<button class="linkbtn" data-openpick>Anderer Friseur: ${esc(bname(bId))} ändern</button>` : '')}
-        ${note!=='' || entry ? `<div class="field"><label>Notiz / Kunde</label><input type="text" id="nt" value="${esc(note)}" placeholder="z. B. Schnitt + Bart" maxlength="60"></div>`
-          : `<button class="linkbtn" data-addnote>+ Notiz / Kundenname</button>`}
+        ${pickerOpen ? `<div class="field"><label>${tr('f_barber')}</label><div class="bchips">${
+          S.barbers.map(b=>`<button class="bchip" data-b="${b.id}" aria-pressed="${b.id===bId}">${esc(b.name)}${b.me?' · '+tr('me'):''}</button>`).join('')
+        }</div></div>` : (isNew && !showPicker ? `<button class="linkbtn" data-openpick>${tr('other_barber', esc(bname(bId)))}</button>` : '')}
+        ${note!=='' || entry ? `<div class="field"><label>${tr('note_customer')}</label><input type="text" id="nt" value="${esc(note)}" placeholder="${tr('note_ph')}" maxlength="60"></div>`
+          : `<button class="linkbtn" data-addnote>${tr('add_note')}</button>`}
       `;
       extra.querySelectorAll('[data-b]').forEach(b=> b.onclick = ()=>{ bId=b.dataset.b; drawExtra(); buzz(); });
       const op = extra.querySelector('[data-openpick]'); if(op) op.onclick = ()=>{ pickerOpen=true; drawExtra(); };
@@ -784,17 +1178,17 @@ function sheetEntry(entry, defBarber, showPicker){
           id:uid(), d:ui.date, t:`${pad2(now.getHours())}:${pad2(now.getMinutes())}`,
           b:bId, a:amt.cents, p:b.dataset.p, n:(note||'').trim()
         });
-        toast(`${eur(amt.cents)} gebucht · ${bname(bId)}`);
+        toast(tr('t_booked', eur(amt.cents), bname(bId)));
       }else{
         Object.assign(entry, {b:bId, a:amt.cents, p:b.dataset.p, n:(note||'').trim()});
-        toast('Gespeichert');
+        toast(tr('t_saved'));
       }
       save(); buzz(14); closeSheet(); render();
     });
     const del = root.querySelector('[data-del]');
     if(del) del.onclick = ()=>{
       S.entries = S.entries.filter(e=>e.id!==entry.id);
-      save(); closeSheet(); render(); toast('Eintrag gelöscht');
+      save(); closeSheet(); render(); toast(tr('t_entry_del'));
     };
   }});
 }
@@ -805,18 +1199,18 @@ function sheetExpense(exp){
   const amt = makeAmount(exp?exp.a:0);
   let cat = exp ? exp.c : 'Material';
   let note = exp ? (exp.n||'') : '';
-  const cats = ['Material','Miete','Sonstiges'];
+  const cats = CATS;
   const body = `
     <div class="amt-display" id="ad">${amt.display()}</div>
     ${padHTML()}
-    <div class="field" style="margin-top:14px"><label>Kategorie</label>
-      <div class="bchips">${cats.map(c=>`<button class="bchip" data-c="${c}" aria-pressed="${c===cat}">${c}</button>`).join('')}</div>
+    <div class="field" style="margin-top:14px"><label>${tr('category')}</label>
+      <div class="bchips">${cats.map(c=>`<button class="bchip" data-c="${c}" aria-pressed="${c===cat}">${catLabel(c)}</button>`).join('')}</div>
     </div>
-    <div class="field"><label>Notiz</label><input type="text" id="nt" value="${esc(note)}" placeholder="optional" maxlength="60"></div>
-    <button class="btn primary block" data-save>Ausgabe speichern</button>
-    ${isNew?'':'<button class="btn danger block" data-del style="margin-top:10px">Löschen</button>'}
+    <div class="field"><label>${tr('note')}</label><input type="text" id="nt" value="${esc(note)}" placeholder="${tr('ph_optional')}" maxlength="60"></div>
+    <button class="btn primary block" data-save>${tr('save_expense')}</button>
+    ${isNew?'':`<button class="btn danger block" data-del style="margin-top:10px">${tr('del_l')}</button>`}
   `;
-  openSheet(isNew?'Ausgabe erfassen':'Ausgabe bearbeiten', body, {onMount(root){
+  openSheet(isNew?tr('sh_new_exp'):tr('sh_edit_exp'), body, {onMount(root){
     const ad = root.querySelector('#ad');
     const sync = ()=>{ ad.innerHTML = amt.display(); root.querySelector('[data-save]').disabled = amt.cents<=0; };
     sync();
@@ -830,10 +1224,10 @@ function sheetExpense(exp){
       if(amt.cents<=0) return;
       if(isNew) S.expenses.push({id:uid(), d:ui.date, a:amt.cents, c:cat, n:note.trim()});
       else Object.assign(exp,{a:amt.cents,c:cat,n:note.trim()});
-      save(); closeSheet(); render(); toast('Ausgabe gespeichert');
+      save(); closeSheet(); render(); toast(tr('t_exp_saved'));
     };
     const del = root.querySelector('[data-del]');
-    if(del) del.onclick = ()=>{ S.expenses = S.expenses.filter(x=>x.id!==exp.id); save(); closeSheet(); render(); toast('Ausgabe gelöscht'); };
+    if(del) del.onclick = ()=>{ S.expenses = S.expenses.filter(x=>x.id!==exp.id); save(); closeSheet(); render(); toast(tr('t_exp_del')); };
   }});
 }
 
@@ -844,7 +1238,7 @@ function sheetSalary(bId, date){
   let status = p ? p.s : 'paid';
   const rev = totals(S.entries.filter(e=>e.d===date && e.b===bId)).total;
   const body = `
-    <div class="hintline" style="text-align:center;margin-bottom:2px">Umsatz ${esc(bname(bId))} am ${dateShort(date)}: <strong class="num">${eur(rev)}</strong></div>
+    <div class="hintline" style="text-align:center;margin-bottom:2px">${tr('sal_rev_on', esc(bname(bId)), dateShort(date))} <strong class="num">${eur(rev)}</strong></div>
     <div class="amt-display" id="ad">${amt.display()}</div>
     <div class="quick">
       <button data-q="${Math.round(rev*0.4/500)*500}">40 % (${eur0(Math.round(rev*0.4/500)*500)})</button>
@@ -853,16 +1247,16 @@ function sheetSalary(bId, date){
       <button data-q="10000">100 €</button>
     </div>
     ${padHTML()}
-    <div class="field" style="margin-top:14px"><label>Status</label>
+    <div class="field" style="margin-top:14px"><label>${tr('status_l')}</label>
       <div class="seg" id="st">
-        <button data-s="paid" aria-pressed="${status==='paid'}">Ausgezahlt</button>
-        <button data-s="open" aria-pressed="${status==='open'}">Noch offen</button>
+        <button data-s="paid" aria-pressed="${status==='paid'}">${tr('st_paid')}</button>
+        <button data-s="open" aria-pressed="${status==='open'}">${tr('st_open')}</button>
       </div>
     </div>
-    <button class="btn primary block" data-save>Speichern</button>
-    ${p?'<button class="btn ghost block" data-del style="margin-top:10px">Eintrag entfernen</button>':''}
+    <button class="btn primary block" data-save>${tr('save')}</button>
+    ${p?`<button class="btn ghost block" data-del style="margin-top:10px">${tr('remove_entry')}</button>`:''}
   `;
-  openSheet(`Gehalt · ${bname(bId)}`, body, {onMount(root){
+  openSheet(tr('sh_salary', bname(bId)), body, {onMount(root){
     const ad = root.querySelector('#ad');
     const sync = ()=> ad.innerHTML = amt.display();
     root.querySelectorAll('[data-k]').forEach(b=> b.onclick = ()=>{ amt.press(b.dataset.k); sync(); buzz(6); });
@@ -873,13 +1267,13 @@ function sheetSalary(bId, date){
       buzz();
     });
     root.querySelector('[data-save]').onclick = ()=>{
-      if(amt.cents<=0){ toast('Bitte Betrag eingeben'); return; }
+      if(amt.cents<=0){ toast(tr('t_enter_amount')); return; }
       if(p){ p.a = amt.cents; p.s = status; }
       else S.payouts.push({id:uid(), d:date, b:bId, a:amt.cents, s:status, src:'close'});
-      save(); closeSheet(); render(); toast(status==='paid'?'Als ausgezahlt gespeichert':'Als offen gespeichert');
+      save(); closeSheet(); render(); toast(status==='paid'?tr('t_sal_paid'):tr('t_sal_open'));
     };
     const del = root.querySelector('[data-del]');
-    if(del) del.onclick = ()=>{ S.payouts = S.payouts.filter(x=>x.id!==p.id); save(); closeSheet(); render(); toast('Entfernt'); };
+    if(del) del.onclick = ()=>{ S.payouts = S.payouts.filter(x=>x.id!==p.id); save(); closeSheet(); render(); toast(tr('t_removed')); };
   }});
 }
 
@@ -889,16 +1283,16 @@ function sheetText(title, filename, text, hint, onSaved){
     <p class="hintline" style="margin:0 0 12px">${esc(hint||'')}</p>
     <div class="field"><textarea id="tx" rows="9" readonly style="font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;overflow:auto">${esc(text)}</textarea></div>
     ${EMBEDDED
-      ? `<button class="btn primary block" data-copy>Text kopieren</button>
-         <button class="btn ghost block" data-dl style="margin-top:10px">Als Datei speichern</button>
-         <p class="hintline" style="margin:10px 0 0;text-align:center">Das Speichern als Datei funktioniert in der installierten App. Hier in der Web-Vorschau bitte den Text kopieren.</p>`
-      : `<button class="btn primary block" data-dl>Als Datei speichern</button>
-         <button class="btn ghost block" data-copy style="margin-top:10px">Text kopieren</button>`}
+      ? `<button class="btn primary block" data-copy>${tr('copy_text')}</button>
+         <button class="btn ghost block" data-dl style="margin-top:10px">${tr('save_file')}</button>
+         <p class="hintline" style="margin:10px 0 0;text-align:center">${tr('embed_note')}</p>`
+      : `<button class="btn primary block" data-dl>${tr('save_file')}</button>
+         <button class="btn ghost block" data-copy style="margin-top:10px">${tr('copy_text')}</button>`}
   `;
   openSheet(title, body, {onMount(root){
     root.querySelector('[data-copy]').onclick = async ()=>{
-      try{ await navigator.clipboard.writeText(text); toast('Kopiert'); }
-      catch(e){ const t=root.querySelector('#tx'); t.select(); document.execCommand('copy'); toast('Kopiert'); }
+      try{ await navigator.clipboard.writeText(text); toast(tr('t_copied')); }
+      catch(e){ const t=root.querySelector('#tx'); t.select(); document.execCommand('copy'); toast(tr('t_copied')); }
       if(onSaved) onSaved();
     };
     root.querySelector('[data-dl]').onclick = ()=>{
@@ -907,9 +1301,9 @@ function sheetText(title, filename, text, hint, onSaved){
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob); a.download = filename;
         document.body.appendChild(a); a.click(); a.remove();
-        toast('Datei gespeichert');
+        toast(tr('t_file_saved'));
         if(onSaved) onSaved();
-      }catch(e){ toast('Download hier blockiert – Text kopieren'); }
+      }catch(e){ toast(tr('t_dl_blocked')); }
     };
   }});
 }
@@ -919,20 +1313,21 @@ function sheetText(title, filename, text, hint, onSaved){
    ============================================================ */
 function renderTopbar(){
   const tb = document.getElementById('topbar');
+  const chPrev = isRTL() ? I.right : I.left, chNext = isRTL() ? I.left : I.right;
   const dayNav = `
     <div class="daynav">
-      <button data-day="-1" aria-label="Tag zurück">${I.left}</button>
-      ${ui.date!==todayISO() ? `<button class="today" data-today>heute</button>` : ''}
-      <button data-day="1" aria-label="Tag vor" ${ui.date>=todayISO()?'disabled style="opacity:.3"':''}>${I.right}</button>
+      <button data-day="-1" aria-label="${tr('a_prevday')}">${chPrev}</button>
+      ${ui.date!==todayISO() ? `<button class="today" data-today>${tr('today')}</button>` : ''}
+      <button data-day="1" aria-label="${tr('a_nextday')}" ${ui.date>=todayISO()?'disabled style="opacity:.3"':''}>${chNext}</button>
     </div>`;
 
   if(ui.tab==='heute' || ui.tab==='team' || ui.tab==='kasse'){
-    const titles = {heute:'Meine Kunden', team:'Team', kasse:'Kasse'};
+    const titles = {heute:tr('hd_today'), team:tr('tab_team'), kasse:tr('tab_cash')};
     tb.innerHTML = `
       <div class="tb-grow">
         <div class="tb-title">${titles[ui.tab]}</div>
         <button class="tb-sub" data-pickdate style="display:flex;align-items:center;gap:5px">
-          ${dateLabel(ui.date)} ${S.closes[ui.date]?'· abgeschlossen':''}
+          ${dateLabel(ui.date)} ${S.closes[ui.date]?'· '+tr('closed'):''}
         </button>
       </div>
       ${dayNav}`;
@@ -951,14 +1346,14 @@ function renderTopbar(){
       inp.showPicker ? inp.showPicker() : inp.click();
     };
   } else if(ui.tab==='bericht'){
-    tb.innerHTML = `<div class="tb-grow"><div class="tb-title">Bericht</div><div class="tb-sub">${esc(periodLabel())}</div></div>
+    tb.innerHTML = `<div class="tb-grow"><div class="tb-title">${tr('tab_report')}</div><div class="tb-sub">${esc(periodLabel())}</div></div>
       <div class="daynav">
-        <button data-p="-1" aria-label="zurück">${I.left}</button>
-        <button data-p="1" aria-label="vor">${I.right}</button>
+        <button data-p="-1" aria-label="${tr('a_prev')}">${chPrev}</button>
+        <button data-p="1" aria-label="${tr('a_next')}">${chNext}</button>
       </div>`;
     tb.querySelectorAll('[data-p]').forEach(b=> b.onclick = ()=>{ shiftPeriod(+b.dataset.p); render(); });
   } else {
-    tb.innerHTML = `<div class="tb-grow"><div class="tb-title">Mehr</div><div class="tb-sub">Friseure, Auszahlungen, Daten</div></div>`;
+    tb.innerHTML = `<div class="tb-grow"><div class="tb-title">${tr('tab_more')}</div><div class="tb-sub">${tr('more_sub')}</div></div>`;
   }
 }
 
@@ -967,23 +1362,23 @@ function heroCard(label, t, extra){
   return `<section class="card hero">
     <div class="hero-top"><div class="eyebrow">${esc(label)}</div>${extra||''}</div>
     <div class="hero-fig money">${eur(t.total)}</div>
-    <div class="hero-meta">${t.count} ${t.count===1?'Kunde':'Kunden'}${t.count?` · ø ${eur(Math.round(t.total/t.count))}`:''}</div>
+    <div class="hero-meta">${t.count} ${t.count===1?tr('cust_1'):tr('cust_n')}${t.count?` · ø ${eur(Math.round(t.total/t.count))}`:''}</div>
     <div class="pbar"><i class="b" style="width:${(t.bar/w*100).toFixed(1)}%"></i><i class="k" style="width:${(t.karte/w*100).toFixed(1)}%"></i></div>
     <div class="split">
-      <div class="chip bar"><span class="k">Bar</span><span class="v">${eur(t.bar)}</span></div>
-      <div class="chip karte"><span class="k">Karte</span><span class="v">${eur(t.karte)}</span></div>
+      <div class="chip bar"><span class="k">${tr('bar')}</span><span class="v">${eur(t.bar)}</span></div>
+      <div class="chip karte"><span class="k">${tr('card')}</span><span class="v">${eur(t.karte)}</span></div>
     </div>
   </section>`;
 }
 
 function entryRows(list, showBarber){
-  if(!list.length) return `<div class="card"><div class="empty"><div class="big">Noch keine Einträge</div><div class="sm">Tippe unten auf „Kunde“ und gib den Betrag ein.</div></div></div>`;
+  if(!list.length) return `<div class="card"><div class="empty"><div class="big">${tr('no_entries')}</div><div class="sm">${tr('no_entries_hint')}</div></div></div>`;
   return `<section class="card"><div class="rows">${list.map(e=>`
     <button class="row" data-entry="${e.id}">
       <span class="lead">${e.t}</span>
       <span class="main">
-        <span class="t1">${esc(e.n || 'Kunde')}</span>
-        <span class="t2">${showBarber?esc(bname(e.b))+' · ':''}${e.p==='bar'?'Bar':'Karte'}</span>
+        <span class="t1">${esc(e.n || tr('customer'))}</span>
+        <span class="t2">${showBarber?esc(bname(e.b))+' · ':''}${e.p==='bar'?tr('bar'):tr('card')}</span>
       </span>
       <span class="pay-dot ${e.p==='bar'?'b':'k'}"></span>
       <span class="amt money">${eur(e.a)}</span>
@@ -994,10 +1389,10 @@ function backupWarn(){
   if(!S.entries.length) return '';
   const d = daysSince(S.settings.lastBackup);
   if(d !== null && d < 14) return '';
-  return `<button class="card card-pad" data-backupnow style="display:block;width:100%;text-align:left;background:var(--brass-soft);border-color:transparent;box-shadow:none">
-    <div class="eyebrow" style="color:var(--brass)">Sicherung</div>
-    <div style="font-size:14.5px;font-weight:600;margin-top:3px">${d===null?'Noch kein Backup gemacht':'Letztes Backup vor '+d+' Tagen'}</div>
-    <div class="hintline" style="color:var(--brass);opacity:.9;margin-top:2px">Antippen und die Sicherungsdatei speichern.</div>
+  return `<button class="card card-pad backup-card" data-backupnow style="display:block;width:100%;text-align:start;background:var(--brass-soft);border-color:transparent;box-shadow:none">
+    <div class="eyebrow" style="color:var(--brass)">${tr('sec_backup')}</div>
+    <div style="font-size:14.5px;font-weight:600;margin-top:3px">${d===null?tr('no_backup_yet'):tr('last_backup_days', d)}</div>
+    <div class="hintline" style="color:var(--brass);opacity:.9;margin-top:2px">${tr('backup_tap')}</div>
   </button>`;
 }
 
@@ -1006,8 +1401,8 @@ function screenHeute(){
   const t = totals(list);
   const closed = S.closes[ui.date];
   return backupWarn()
-    + heroCard(`Umsatz ${dateShort(ui.date)}`, t, closed?'<span class="pill closed">abgeschlossen</span>':'')
-    + `<div class="sec-head"><span class="eyebrow">Einträge</span><span class="eyebrow">${list.length}</span></div>`
+    + heroCard(tr('revenue_on', dateShort(ui.date)), t, closed?`<span class="pill closed">${tr('closed')}</span>`:'')
+    + `<div class="sec-head"><span class="eyebrow">${tr('entries')}</span><span class="eyebrow">${list.length}</span></div>`
     + entryRows(list,false);
 }
 
@@ -1022,18 +1417,18 @@ function screenTeam(){
   const max = Math.max(1, ...perB.map(x=>x.tt.total));
   return `
     <div class="bchips">
-      <button class="bchip" data-tf="all" aria-pressed="${ui.teamFilter==='all'}">Alle</button>
+      <button class="bchip" data-tf="all" aria-pressed="${ui.teamFilter==='all'}">${tr('all')}</button>
       ${others().map(b=>`<button class="bchip" data-tf="${b.id}" aria-pressed="${ui.teamFilter===b.id}">${esc(b.name)}</button>`).join('')}
     </div>
-    ${heroCard(ui.teamFilter==='all'?`Team ${dateShort(ui.date)}`:`${bname(ui.teamFilter)} ${dateShort(ui.date)}`, t)}
-    ${perB.length? `<div class="sec-head"><span class="eyebrow">Nach Friseur</span></div>
+    ${heroCard(ui.teamFilter==='all'?tr('team_on', dateShort(ui.date)):`${bname(ui.teamFilter)} ${dateShort(ui.date)}`, t)}
+    ${perB.length? `<div class="sec-head"><span class="eyebrow">${tr('by_barber')}</span></div>
     <section class="card">${perB.map(x=>`
       <div class="brow">
         <div class="l1"><span class="nm">${esc(x.b.name)}</span><span class="vl">${eur(x.tt.total)}</span></div>
         <div class="track"><i style="width:${(x.tt.total/max*100).toFixed(1)}%"></i></div>
-        <div class="l2"><span>${x.tt.count} Kunden · Bar ${eur(x.tt.bar)} · Karte ${eur(x.tt.karte)}</span></div>
+        <div class="l2"><span>${tr('line_barber', x.tt.count, eur(x.tt.bar), eur(x.tt.karte))}</span></div>
       </div>`).join('')}</section>`:''}
-    <div class="sec-head"><span class="eyebrow">Einträge</span><span class="eyebrow">${filtered.length}</span></div>
+    <div class="sec-head"><span class="eyebrow">${tr('entries')}</span><span class="eyebrow">${filtered.length}</span></div>
     ${entryRows(filtered,true)}`;
 }
 
@@ -1054,49 +1449,49 @@ function screenKasse(){
     if(!p && !rev && !b.me) return '';
     return `<button class="row" data-sal="${b.id}">
       <span class="main">
-        <span class="t1">${esc(b.name)}${b.me?' <span class="pill me">ich</span>':''}</span>
-        <span class="t2">${p ? (p.s==='paid'?'ausgezahlt':'noch offen') : 'noch nicht eingetragen'}</span>
+        <span class="t1">${esc(b.name)}${b.me?` <span class="pill me">${tr('me')}</span>`:''}</span>
+        <span class="t2">${p ? (p.s==='paid'?tr('paid_out'):tr('still_open')) : tr('not_entered')}</span>
       </span>
-      ${p?`<span class="pill ${p.s==='paid'?'paid':'open'}">${p.s==='paid'?'bezahlt':'offen'}</span>`:''}
+      ${p?`<span class="pill ${p.s==='paid'?'paid':'open'}">${p.s==='paid'?tr('paid'):tr('open')}</span>`:''}
       <span class="amt money">${p?eur(p.a):'—'}</span>
     </button>`;
   }).join('');
 
   return `
-    ${heroCard(`Gesamtumsatz ${dateShort(d)}`, tAll, closed?'<span class="pill closed">abgeschlossen</span>':'')}
+    ${heroCard(tr('total_rev_on', dateShort(d)), tAll, closed?`<span class="pill closed">${tr('closed')}</span>`:'')}
 
-    <div class="sec-head"><span class="eyebrow">Umsatz nach Friseur</span></div>
+    <div class="sec-head"><span class="eyebrow">${tr('rev_by_barber')}</span></div>
     <section class="card">${perB.map(x=>`
-      <div class="kv"><span class="k">${esc(x.b.name)}${x.b.me?' · ich':''} <span style="color:var(--ink-3);font-size:12px">(${x.t.count})</span></span><span class="v">${eur(x.t.total)}</span></div>
+      <div class="kv"><span class="k">${esc(x.b.name)}${x.b.me?' · '+tr('me'):''} <span style="color:var(--ink-3);font-size:12px">(${x.t.count})</span></span><span class="v">${eur(x.t.total)}</span></div>
     `).join('')}
-      <div class="kv total"><span class="k">Umsatz gesamt</span><span class="v">${eur(tAll.total)}</span></div>
+      <div class="kv total"><span class="k">${tr('total_revenue')}</span><span class="v">${eur(tAll.total)}</span></div>
     </section>
 
-    <div class="sec-head"><span class="eyebrow">Ausgaben</span><button class="sec-act" data-addexp>+ Ausgabe</button></div>
+    <div class="sec-head"><span class="eyebrow">${tr('expenses')}</span><button class="sec-act" data-addexp>${tr('add_expense')}</button></div>
     <section class="card">
       ${exp.length? exp.map(x=>`<button class="row" data-exp="${x.id}">
-        <span class="main"><span class="t1">${esc(x.c)}</span>${x.n?`<span class="t2">${esc(x.n)}</span>`:''}</span>
+        <span class="main"><span class="t1">${esc(catLabel(x.c))}</span>${x.n?`<span class="t2">${esc(x.n)}</span>`:''}</span>
         <span class="amt money" style="color:var(--open)">− ${eur(x.a)}</span></button>`).join('')
-        : `<div class="empty" style="padding:20px"><div class="sm">Heute keine Ausgaben</div></div>`}
-      <div class="kv total"><span class="k">Tagesergebnis</span><span class="v">${eur(tAll.total-expSum)}</span></div>
+        : `<div class="empty" style="padding:20px"><div class="sm">${tr('no_expenses_today')}</div></div>`}
+      <div class="kv total"><span class="k">${tr('day_result')}</span><span class="v">${eur(tAll.total-expSum)}</span></div>
     </section>
 
-    <div class="sec-head"><span class="eyebrow">Gehalt heute</span><span class="eyebrow">tippen zum Eintragen</span></div>
-    <section class="card"><div class="rows">${payRows || '<div class="empty" style="padding:20px"><div class="sm">Keine Friseure aktiv</div></div>'}</div></section>
+    <div class="sec-head"><span class="eyebrow">${tr('salary_today')}</span><span class="eyebrow">${tr('tap_to_enter')}</span></div>
+    <section class="card"><div class="rows">${payRows || `<div class="empty" style="padding:20px"><div class="sm">${tr('no_barbers')}</div></div>`}</div></section>
 
     <div class="card card-pad" style="background:var(--surface-2);box-shadow:none">
-      <div class="eyebrow" style="margin-bottom:6px">In der Kasse</div>
-      <div class="hintline">Bar eingenommen <strong class="num">${eur(tAll.bar)}</strong> · bar ausgezahltes Gehalt <strong class="num">${eur(sum(S.payouts.filter(p=>p.d===d&&p.s==='paid'),p=>p.a))}</strong> · Ausgaben <strong class="num">${eur(expSum)}</strong><br>
-      Rechnerischer Bar-Bestand: <strong class="num" style="color:var(--ink)">${eur(tAll.bar - sum(S.payouts.filter(p=>p.d===d&&p.s==='paid'),p=>p.a) - expSum)}</strong></div>
+      <div class="eyebrow" style="margin-bottom:6px">${tr('in_till')}</div>
+      <div class="hintline">${tr('till_line', eur(tAll.bar), eur(sum(S.payouts.filter(p=>p.d===d&&p.s==='paid'),p=>p.a)), eur(expSum))}<br>
+      ${tr('till_calc')}: <strong class="num" style="color:var(--ink)">${eur(tAll.bar - sum(S.payouts.filter(p=>p.d===d&&p.s==='paid'),p=>p.a) - expSum)}</strong></div>
     </div>`;
 }
 
 function periodLabel(){
   const r = rangeOf(ui.range, ui.anchor);
   if(ui.range==='tag') return dateLabel(ui.anchor);
-  if(ui.range==='woche'){ const w=isoWeek(fromISO(ui.anchor)); return `KW ${w.week} · ${dateShort(r[0]).slice(3)}–${dateShort(r[1]).slice(3)}`; }
-  if(ui.range==='monat'){ const d=fromISO(ui.anchor); return `${MON[d.getMonth()]} ${d.getFullYear()}`; }
-  return `Jahr ${fromISO(ui.anchor).getFullYear()}`;
+  if(ui.range==='woche'){ const w=isoWeek(fromISO(ui.anchor)); return `${tr('cw', w.week)} · ${dateShort(r[0]).slice(3)}–${dateShort(r[1]).slice(3)}`; }
+  if(ui.range==='monat'){ const d=fromISO(ui.anchor); return `${cal().mon[d.getMonth()]} ${d.getFullYear()}`; }
+  return tr('year_n', fromISO(ui.anchor).getFullYear());
 }
 function shiftPeriod(n){
   const d = fromISO(ui.anchor);
@@ -1129,60 +1524,60 @@ function screenBericht(){
     const opAll = sum(S.payouts.filter(p=>p.b===b.id && p.s==='open'),p=>p.a);
     if(!pd && !op && !opAll) return '';
     return `<div class="brow">
-      <div class="l1"><span class="nm">${esc(b.name)}${b.me?' <span class="pill me">ich</span>':''}</span><span class="vl">${eur(pd+op)}</span></div>
+      <div class="l1"><span class="nm">${esc(b.name)}${b.me?` <span class="pill me">${tr('me')}</span>`:''}</span><span class="vl">${eur(pd+op)}</span></div>
       <div class="l2" style="margin-top:7px">
-        <span class="pill paid">${I.check} ${eur(pd)} bezahlt</span>
-        ${op?`<span class="pill open">${eur(op)} offen</span>`:'<span style="font-size:11.5px">nichts offen im Zeitraum</span>'}
+        <span class="pill paid">${I.check} ${tr('x_paid', eur(pd))}</span>
+        ${op?`<span class="pill open">${tr('x_open', eur(op))}</span>`:`<span style="font-size:11.5px">${tr('nothing_open')}</span>`}
       </div>
-      ${opAll?`<div class="l2"><span>Offen insgesamt (alle Zeiträume): <strong class="num" style="color:var(--open)">${eur(opAll)}</strong></span></div>`:''}
+      ${opAll?`<div class="l2"><span>${tr('open_all_time')} <strong class="num" style="color:var(--open)">${eur(opAll)}</strong></span></div>`:''}
     </div>`;
   }).join('');
 
   const w = t.total||1;
   return `
     <div class="seg" id="rangeseg">
-      ${['tag','woche','monat','jahr'].map(k=>`<button data-r="${k}" aria-pressed="${ui.range===k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}
+      ${['tag','woche','monat','jahr'].map(k=>`<button data-r="${k}" aria-pressed="${ui.range===k}">${tr({tag:'r_day',woche:'r_week',monat:'r_month',jahr:'r_year'}[k])}</button>`).join('')}
     </div>
 
     <section class="card hero">
-      <div class="eyebrow">Umsatz · ${esc(periodLabel())}</div>
+      <div class="eyebrow">${tr('rev_period', esc(periodLabel()))}</div>
       <div class="hero-fig money">${eur(t.total)}</div>
-      <div class="hero-meta">${t.count} Kunden${t.count?` · ø ${eur(Math.round(t.total/t.count))}`:''}</div>
+      <div class="hero-meta">${t.count} ${tr('cust_n')}${t.count?` · ø ${eur(Math.round(t.total/t.count))}`:''}</div>
       <div class="pbar"><i class="b" style="width:${(t.bar/w*100).toFixed(1)}%"></i><i class="k" style="width:${(t.karte/w*100).toFixed(1)}%"></i></div>
       <div class="split">
-        <div class="chip bar"><span class="k">Bar ${Math.round(t.bar/w*100)} %</span><span class="v">${eur(t.bar)}</span></div>
-        <div class="chip karte"><span class="k">Karte ${Math.round(t.karte/w*100)} %</span><span class="v">${eur(t.karte)}</span></div>
+        <div class="chip bar"><span class="k">${tr('bar')} ${Math.round(t.bar/w*100)} %</span><span class="v">${eur(t.bar)}</span></div>
+        <div class="chip karte"><span class="k">${tr('card')} ${Math.round(t.karte/w*100)} %</span><span class="v">${eur(t.karte)}</span></div>
       </div>
     </section>
 
     <section class="card">
-      <div class="kv"><span class="k">Umsatz</span><span class="v">${eur(t.total)}</span></div>
-      <div class="kv"><span class="k">Ausgaben (${exp.length})</span><span class="v" style="color:var(--open)">− ${eur(expSum)}</span></div>
-      <div class="kv"><span class="k">Gehalt ausgezahlt</span><span class="v" style="color:var(--open)">− ${eur(paid)}</span></div>
-      <div class="kv total"><span class="k">Verbleibt</span><span class="v">${eur(t.total-expSum-paid)}</span></div>
+      <div class="kv"><span class="k">${tr('revenue')}</span><span class="v">${eur(t.total)}</span></div>
+      <div class="kv"><span class="k">${tr('expenses_n', exp.length)}</span><span class="v" style="color:var(--open)">− ${eur(expSum)}</span></div>
+      <div class="kv"><span class="k">${tr('salary_paid')}</span><span class="v" style="color:var(--open)">− ${eur(paid)}</span></div>
+      <div class="kv total"><span class="k">${tr('remains')}</span><span class="v">${eur(t.total-expSum-paid)}</span></div>
     </section>
 
-    <div class="sec-head"><span class="eyebrow">Umsatz pro Friseur</span></div>
+    <div class="sec-head"><span class="eyebrow">${tr('rev_per_barber')}</span></div>
     <section class="card">${perB.length? perB.map(x=>`
       <div class="brow">
-        <div class="l1"><span class="nm">${esc(x.b.name)}${x.b.me?' <span class="pill me">ich</span>':''}</span><span class="vl">${eur(x.t.total)}</span></div>
+        <div class="l1"><span class="nm">${esc(x.b.name)}${x.b.me?` <span class="pill me">${tr('me')}</span>`:''}</span><span class="vl">${eur(x.t.total)}</span></div>
         <div class="track"><i style="width:${(x.t.total/max*100).toFixed(1)}%"></i></div>
-        <div class="l2"><span>${Math.round(x.t.total/w*100)} % · ${x.t.count} Kunden</span><span>ø ${eur(Math.round(x.t.total/(x.t.count||1)))}</span></div>
-      </div>`).join('') : '<div class="empty"><div class="sm">Keine Umsätze in diesem Zeitraum</div></div>'}
+        <div class="l2"><span>${tr('pct_cust', Math.round(x.t.total/w*100), x.t.count)}</span><span>ø ${eur(Math.round(x.t.total/(x.t.count||1)))}</span></div>
+      </div>`).join('') : `<div class="empty"><div class="sm">${tr('no_rev_period')}</div></div>`}
     </section>
 
-    <div class="sec-head"><span class="eyebrow">Gehalt: bezahlt / offen</span></div>
-    <section class="card">${salRows || '<div class="empty"><div class="sm">Keine Gehaltseinträge</div></div>'}</section>
+    <div class="sec-head"><span class="eyebrow">${tr('sal_paid_open')}</span></div>
+    <section class="card">${salRows || `<div class="empty"><div class="sm">${tr('no_salary')}</div></div>`}</section>
     ${openAll?`<div class="card card-pad" style="background:var(--open-soft);border-color:transparent;box-shadow:none">
-      <div class="eyebrow" style="color:var(--open)">Offen gesamt</div>
+      <div class="eyebrow" style="color:var(--open)">${tr('open_total')}</div>
       <div class="money" style="font-size:26px;font-weight:700;color:var(--open);margin-top:2px">${eur(openAll)}</div>
-      <div class="hintline" style="color:var(--open);opacity:.85">Noch nicht ausgezahltes Gehalt über alle Tage</div>
+      <div class="hintline" style="color:var(--open);opacity:.85">${tr('open_total_sub')}</div>
     </div>`:''}`;
 }
 
 function doBackup(){
-  sheetText('Backup', `salon-backup-${todayISO()}.json`, JSON.stringify(S),
-    'Sicherungsdatei mit allen Daten. Lege sie in iCloud oder Google Drive – damit lässt sich alles wiederherstellen.',
+  sheetText(tr('sh_backup'), `salon-backup-${todayISO()}.json`, JSON.stringify(S),
+    tr('backup_hint'),
     ()=>{ S.settings.lastBackup = Date.now(); save(); render(); });
 }
 
@@ -1200,83 +1595,90 @@ function screenMehr(){
     <div class="card card-pad" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
       <div>
         <div class="wordmark">${S.settings.shop ? esc(S.settings.shop) : 'Salon <em>Kasse</em>'}</div>
-        <div class="hintline" style="margin-top:4px">Tageskasse & Gehalt · offline auf diesem Gerät</div>
+        <div class="hintline" style="margin-top:4px">${tr('app_sub')}</div>
       </div>
-      <button class="sec-act" data-setup style="flex:none">ändern</button>
+      <button class="sec-act" data-setup style="flex:none">${tr('change')}</button>
     </div>
 
-    <div class="sec-head"><span class="eyebrow">Friseure</span><button class="sec-act" data-addbarber>+ Friseur</button></div>
+    <div class="sec-head"><span class="eyebrow">${tr('language')}</span></div>
+    <section class="card card-pad" style="padding:12px">
+      <div class="seg">${Object.keys(LANGS).map(k=>
+        `<button data-lang="${k}" aria-pressed="${LANG===k}">${LANGS[k]}</button>`).join('')}</div>
+      <p class="hintline" style="margin:11px 3px 1px">${tr('export_lang_note')}</p>
+    </section>
+
+    <div class="sec-head"><span class="eyebrow">${tr('barbers')}</span><button class="sec-act" data-addbarber>${tr('add_barber')}</button></div>
     <section class="card"><div class="rows">${S.barbers.map(b=>`
       <button class="row" data-barber="${b.id}">
-        <span class="main"><span class="t1">${esc(b.name)}${b.me?' <span class="pill me">ich</span>':''}</span>
-        <span class="t2">${S.entries.filter(e=>e.b===b.id).length} Einträge gesamt</span></span>
-        <span class="amt money" style="font-size:13.5px;color:var(--ink-3)">bearbeiten</span>
+        <span class="main"><span class="t1">${esc(b.name)}${b.me?` <span class="pill me">${tr('me')}</span>`:''}</span>
+        <span class="t2">${tr('n_entries_total', S.entries.filter(e=>e.b===b.id).length)}</span></span>
+        <span class="amt money" style="font-size:13.5px;color:var(--ink-3)">${tr('edit')}</span>
       </button>`).join('')}</div></section>
 
-    <div class="sec-head"><span class="eyebrow">Gehalt-Salden</span></div>
+    <div class="sec-head"><span class="eyebrow">${tr('sal_balance')}</span></div>
     <section class="card">${bal.map(x=>`
       <div class="kv"><span class="k">${esc(x.b.name)}</span>
-      <span class="v">${x.op?`<span class="pill open">${eur(x.op)} offen</span>`:`<span class="pill paid">alles bezahlt</span>`}</span></div>
+      <span class="v">${x.op?`<span class="pill open">${tr('x_open', eur(x.op))}</span>`:`<span class="pill paid">${tr('all_paid')}</span>`}</span></div>
     `).join('')}</section>
 
-    <div class="sec-head"><span class="eyebrow">Letzte Auszahlungen</span><button class="sec-act" data-addpay>+ Auszahlung</button></div>
+    <div class="sec-head"><span class="eyebrow">${tr('last_payouts')}</span><button class="sec-act" data-addpay>${tr('add_payout')}</button></div>
     <section class="card"><div class="rows">${recent.length? recent.map(p=>`
       <button class="row" data-pay="${p.id}">
         <span class="lead">${dateShort(p.d).slice(3)}</span>
-        <span class="main"><span class="t1">${esc(bname(p.b))}</span><span class="t2">${p.s==='paid'?'ausgezahlt':'offen'}</span></span>
-        <span class="pill ${p.s==='paid'?'paid':'open'}">${p.s==='paid'?'bezahlt':'offen'}</span>
+        <span class="main"><span class="t1">${esc(bname(p.b))}</span><span class="t2">${p.s==='paid'?tr('paid_out'):tr('open')}</span></span>
+        <span class="pill ${p.s==='paid'?'paid':'open'}">${p.s==='paid'?tr('paid'):tr('open')}</span>
         <span class="amt money">${eur(p.a)}</span>
-      </button>`).join('') : '<div class="empty"><div class="sm">Noch keine Auszahlungen</div></div>'}</div></section>
+      </button>`).join('') : `<div class="empty"><div class="sm">${tr('no_payouts')}</div></div>`}</div></section>
 
-    <div class="sec-head"><span class="eyebrow">Letzte Ausgaben</span></div>
+    <div class="sec-head"><span class="eyebrow">${tr('last_expenses')}</span></div>
     <section class="card"><div class="rows">${recentExp.length? recentExp.map(x=>`
       <button class="row" data-exp="${x.id}">
         <span class="lead">${dateShort(x.d).slice(3)}</span>
-        <span class="main"><span class="t1">${esc(x.c)}</span>${x.n?`<span class="t2">${esc(x.n)}</span>`:''}</span>
+        <span class="main"><span class="t1">${esc(catLabel(x.c))}</span>${x.n?`<span class="t2">${esc(x.n)}</span>`:''}</span>
         <span class="amt money" style="color:var(--open)">− ${eur(x.a)}</span>
-      </button>`).join('') : '<div class="empty"><div class="sm">Keine Ausgaben</div></div>'}</div></section>
+      </button>`).join('') : `<div class="empty"><div class="sm">${tr('no_expenses')}</div></div>`}</div></section>
 
-    <div class="sec-head"><span class="eyebrow">Speicher & Sicherung</span></div>
+    <div class="sec-head"><span class="eyebrow">${tr('storage')}</span></div>
     <section class="card">
-      <div class="kv"><span class="k">Dauerhaft im Gerät</span><span class="v">${
-        storageInfo.persisted===true ? '<span class="pill paid">aktiv</span>'
-        : storageInfo.persisted===false ? '<span class="pill open">nicht aktiv</span>'
-        : '<span class="pill neutral">wird geprüft</span>'}</span></div>
-      <div class="kv"><span class="k">Belegter Speicher</span><span class="v" style="font-size:14px">${
-        storageInfo.usage!=null ? Math.max(1, Math.round(storageInfo.usage/1024)).toLocaleString('de-DE')+' KB' : '–'}</span></div>
-      <div class="kv"><span class="k">Letztes Backup</span><span class="v" style="font-size:14px;${bDays===null||bDays>=14?'color:var(--open)':''}">${
-        bDays===null ? 'noch nie' : bDays===0 ? 'heute' : 'vor '+bDays+' Tagen'}</span></div>
+      <div class="kv"><span class="k">${tr('persist_l')}</span><span class="v">${
+        storageInfo.persisted===true ? `<span class="pill paid">${tr('st_active')}</span>`
+        : storageInfo.persisted===false ? `<span class="pill open">${tr('st_inactive')}</span>`
+        : `<span class="pill neutral">${tr('st_checking')}</span>`}</span></div>
+      <div class="kv"><span class="k">${tr('used_storage')}</span><span class="v" style="font-size:14px">${
+        storageInfo.usage!=null ? nf(false).format(Math.max(1, Math.round(storageInfo.usage/1024)))+' KB' : '–'}</span></div>
+      <div class="kv"><span class="k">${tr('last_backup')}</span><span class="v" style="font-size:14px;${bDays===null||bDays>=14?'color:var(--open)':''}">${
+        bDays===null ? tr('never') : bDays===0 ? tr('today_w') : tr('days_ago', bDays)}</span></div>
     </section>
-    ${storageInfo.persisted===false ? '<button class="btn block" data-persist>Dauerhafte Speicherung einschalten</button>' : ''}
+    ${storageInfo.persisted===false ? `<button class="btn block" data-persist>${tr('enable_persist')}</button>` : ''}
     <section class="card"><div class="rows">
-      <button class="row" data-snaps><span class="main"><span class="t1">Wiederherstellungspunkte</span><span class="t2">${storageInfo.snaps} automatische Stände im Gerät</span></span></button>
+      <button class="row" data-snaps><span class="main"><span class="t1">${tr('snapshots')}</span><span class="t2">${tr('snapshots_sub', storageInfo.snaps)}</span></span></button>
     </div></section>
 
-    <div class="sec-head"><span class="eyebrow">Daten</span></div>
+    <div class="sec-head"><span class="eyebrow">${tr('data')}</span></div>
     <section class="card"><div class="rows">
-      <button class="row" data-export><span class="main"><span class="t1">Bericht exportieren</span><span class="t2">Als PDF oder CSV – alle Daten</span></span></button>
-      <button class="row" data-backup><span class="main"><span class="t1">Backup speichern</span><span class="t2">Sicherungsdatei mit allen Daten</span></span></button>
-      <button class="row" data-restore><span class="main"><span class="t1">Backup wiederherstellen</span><span class="t2">Aus einer Sicherungsdatei zurückholen</span></span></button>
-      ${S.entries.length ? '' : '<button class="row" data-demo><span class="main"><span class="t1">Beispieldaten laden</span><span class="t2">Zum Ausprobieren – jederzeit wieder löschbar</span></span></button>'}
-      <button class="row" data-reset><span class="main"><span class="t1" style="color:var(--open)">Alle Daten löschen</span><span class="t2">Umsätze, Ausgaben und Gehälter zurücksetzen</span></span></button>
+      <button class="row" data-export><span class="main"><span class="t1">${tr('export_report')}</span><span class="t2">${tr('export_sub')}</span></span></button>
+      <button class="row" data-backup><span class="main"><span class="t1">${tr('backup_save')}</span><span class="t2">${tr('backup_save_sub')}</span></span></button>
+      <button class="row" data-restore><span class="main"><span class="t1">${tr('backup_restore')}</span><span class="t2">${tr('backup_restore_sub')}</span></span></button>
+      ${S.entries.length ? '' : `<button class="row" data-demo><span class="main"><span class="t1">${tr('load_demo')}</span><span class="t2">${tr('load_demo_sub')}</span></span></button>`}
+      <button class="row" data-reset><span class="main"><span class="t1" style="color:var(--open)">${tr('wipe')}</span><span class="t2">${tr('wipe_sub')}</span></span></button>
     </div></section>
 
     <div class="card card-pad" style="background:var(--surface-2);box-shadow:none">
-      <div class="eyebrow" style="margin-bottom:6px">App installieren</div>
-      <div class="hintline">iPhone: Safari → Teilen-Symbol → „Zum Home-Bildschirm“.<br>Android: Chrome → Menü → „App installieren“.<br>Danach startet sie im Vollbild wie eine normale App.</div>
+      <div class="eyebrow" style="margin-bottom:6px">${tr('install')}</div>
+      <div class="hintline">${tr('install_txt')}</div>
     </div>
-    <div style="text-align:center;padding:6px 0 4px" class="hintline">Version ${APP_VERSION} · alle Daten bleiben auf diesem Gerät</div>`;
+    <div style="text-align:center;padding:6px 0 4px" class="hintline">${tr('version_line', APP_VERSION)}</div>`;
 }
 
 /* ============================================================
    Render
    ============================================================ */
 const TABS = [
-  {k:'heute', l:'Heute', i:I.scissors},
-  {k:'team', l:'Team', i:I.team},
-  {k:'kasse', l:'Kasse', i:I.cash},
-  {k:'bericht', l:'Bericht', i:I.chart},
-  {k:'mehr', l:'Mehr', i:I.more}
+  {k:'heute',   l:'tab_today',  i:I.scissors},
+  {k:'team',    l:'tab_team',   i:I.team},
+  {k:'kasse',   l:'tab_cash',   i:I.cash},
+  {k:'bericht', l:'tab_report', i:I.chart},
+  {k:'mehr',    l:'tab_more',   i:I.more}
 ];
 
 function render(){
@@ -1298,7 +1700,7 @@ function renderTabs(){
   const tb = document.getElementById('tabbar');
   tb.innerHTML = TABS.map(t=>`
     <button data-tab="${t.k}" ${ui.tab===t.k?'aria-current="page"':''}>
-      ${t.i}<span class="lbl">${t.l}</span>
+      ${t.i}<span class="lbl">${tr(t.l)}</span>
     </button>`).join('');
   tb.querySelectorAll('[data-tab]').forEach(b=> b.onclick = ()=>{
     ui.tab = b.dataset.tab; buzz(6); render();
@@ -1309,7 +1711,7 @@ function renderTabs(){
 function renderFab(){
   const f = document.getElementById('fab');
   if(ui.tab==='heute' || ui.tab==='team'){
-    f.innerHTML = `<button class="btn primary block" data-add>${I.plus} Kunde</button>`;
+    f.innerHTML = `<button class="btn primary block" data-add>${I.plus} ${tr('customer')}</button>`;
     f.querySelector('[data-add]').onclick = ()=>{
       if(ui.tab==='team'){
         const def = ui.teamFilter!=='all' ? ui.teamFilter : (others()[0]||me()).id;
@@ -1318,13 +1720,13 @@ function renderFab(){
     };
   } else if(ui.tab==='kasse'){
     const closed = !!S.closes[ui.date];
-    f.innerHTML = `<button class="btn ${closed?'ghost':'primary'} block" data-close2>${closed?'Tag wieder öffnen':'Tag abschließen'}</button>`;
+    f.innerHTML = `<button class="btn ${closed?'ghost':'primary'} block" data-close2>${closed?tr('reopen_day'):tr('close_day')}</button>`;
     f.querySelector('[data-close2]').onclick = ()=>{
-      if(closed){ delete S.closes[ui.date]; save(); render(); toast('Tag wieder geöffnet'); return; }
+      if(closed){ delete S.closes[ui.date]; save(); render(); toast(tr('t_day_open')); return; }
       confirmClose();
     };
   } else if(ui.tab==='bericht'){
-    f.innerHTML = `<button class="btn block" data-exp2>Zeitraum exportieren</button>`;
+    f.innerHTML = `<button class="btn block" data-exp2>${tr('export_period')}</button>`;
     f.querySelector('[data-exp2]').onclick = ()=> sheetExport(rangeOf(ui.range, ui.anchor), periodLabel());
   } else {
     f.innerHTML = '';
@@ -1351,10 +1753,11 @@ function bindView(v){
   v.querySelectorAll('[data-pay]').forEach(b=> b.onclick = ()=>{
     const p = S.payouts.find(x=>x.id===b.dataset.pay); if(p) sheetPayoutEdit(p);
   });
-  const c = v.querySelector('[data-export]'); if(c) c.onclick = ()=> sheetExport(null, 'Alle Daten');
+  const c = v.querySelector('[data-export]'); if(c) c.onclick = ()=> sheetExport(null, tr('all_data'));
   const bw = v.querySelector('[data-backupnow]'); if(bw) bw.onclick = ()=> doBackup();
   const ps = v.querySelector('[data-persist]'); if(ps) ps.onclick = ()=> askPersist();
   const sn = v.querySelector('[data-snaps]'); if(sn) sn.onclick = ()=> sheetSnapshots();
+  v.querySelectorAll('[data-lang]').forEach(b=> b.onclick = ()=> setLang(b.dataset.lang));
   const bk = v.querySelector('[data-backup]'); if(bk) bk.onclick = ()=> doBackup();
   const rs = v.querySelector('[data-reset]'); if(rs) rs.onclick = ()=> confirmReset();
   const st = v.querySelector('[data-setup]'); if(st) st.onclick = ()=> sheetSetup(false);
@@ -1366,33 +1769,33 @@ function bindView(v){
 function sheetBarber(b){
   const isNew = !b;
   const body = `
-    <div class="field"><label>Name</label><input type="text" id="nm" value="${b?esc(b.name):''}" placeholder="z. B. Yusuf" maxlength="24"></div>
-    ${b&&b.me?'<p class="hintline">Das bist du. Deine Kunden erscheinen im Tab „Heute“.</p>':
-      `<button class="btn ghost block" data-me style="margin-bottom:12px">Als „ich“ festlegen</button>`}
-    <button class="btn primary block" data-save>${isNew?'Friseur hinzufügen':'Speichern'}</button>
-    ${(!isNew && !b.me)?'<button class="btn danger block" data-del style="margin-top:10px">Friseur löschen</button>':''}
+    <div class="field"><label>${tr('name')}</label><input type="text" id="nm" value="${b?esc(b.name):''}" placeholder="${tr('name_ph')}" maxlength="24"></div>
+    ${b&&b.me?`<p class="hintline">${tr('you_are')}</p>`:
+      `<button class="btn ghost block" data-me style="margin-bottom:12px">${tr('set_me')}</button>`}
+    <button class="btn primary block" data-save>${isNew?tr('sh_add_barber'):tr('save')}</button>
+    ${(!isNew && !b.me)?`<button class="btn danger block" data-del style="margin-top:10px">${tr('del_barber')}</button>`:''}
   `;
-  openSheet(isNew?'Friseur hinzufügen':'Friseur bearbeiten', body, {onMount(root){
+  openSheet(isNew?tr('sh_add_barber'):tr('sh_edit_barber'), body, {onMount(root){
     const nm = root.querySelector('#nm'); setTimeout(()=>nm.focus(),260);
     const meBtn = root.querySelector('[data-me]');
     if(meBtn) meBtn.onclick = ()=>{
-      if(isNew){ toast('Erst speichern'); return; }
-      S.barbers.forEach(x=>x.me=false); b.me=true; save(); closeSheet(); render(); toast(`${b.name} ist jetzt „ich“`);
+      if(isNew){ toast(tr('t_save_first')); return; }
+      S.barbers.forEach(x=>x.me=false); b.me=true; save(); closeSheet(); render(); toast(tr('t_now_me', b.name));
     };
     root.querySelector('[data-save]').onclick = ()=>{
-      const n = nm.value.trim(); if(!n){ toast('Bitte Namen eingeben'); return; }
+      const n = nm.value.trim(); if(!n){ toast(tr('t_enter_name')); return; }
       if(isNew) S.barbers.push({id:uid(), name:n, me:S.barbers.length===0});
       else b.name = n;
-      save(); closeSheet(); render(); toast('Gespeichert');
+      save(); closeSheet(); render(); toast(tr('t_saved'));
     };
     const del = root.querySelector('[data-del]');
     if(del) del.onclick = ()=>{
       const cnt = S.entries.filter(e=>e.b===b.id).length;
-      openSheet('Friseur löschen?', `<p class="hintline">${esc(b.name)} hat ${cnt} Einträge. Die Einträge bleiben erhalten, der Friseur verschwindet aus den Listen.</p>
-        <button class="btn danger block" data-yes style="margin-top:14px">Ja, löschen</button>
-        <button class="btn ghost block" data-no style="margin-top:10px">Abbrechen</button>`,
+      openSheet(tr('del_barber_q'), `<p class="hintline">${tr('del_barber_txt', esc(b.name), cnt)}</p>
+        <button class="btn danger block" data-yes style="margin-top:14px">${tr('yes_delete')}</button>
+        <button class="btn ghost block" data-no style="margin-top:10px">${tr('cancel')}</button>`,
         {onMount(r2){
-          r2.querySelector('[data-yes]').onclick = ()=>{ S.barbers = S.barbers.filter(x=>x.id!==b.id); save(); closeSheet(); render(); toast('Gelöscht'); };
+          r2.querySelector('[data-yes]').onclick = ()=>{ S.barbers = S.barbers.filter(x=>x.id!==b.id); save(); closeSheet(); render(); toast(tr('t_deleted')); };
           r2.querySelector('[data-no]').onclick = ()=> closeSheet();
         }});
     };
@@ -1406,45 +1809,45 @@ function sheetManualPayout(){
   const body = `
     <div class="amt-display" id="ad">${amt.display()}</div>
     ${padHTML()}
-    <div class="field" style="margin-top:14px"><label>Friseur</label>
+    <div class="field" style="margin-top:14px"><label>${tr('f_barber')}</label>
       <div class="bchips">${S.barbers.map(b=>`<button class="bchip" data-b="${b.id}" aria-pressed="${b.id===bId}">${esc(b.name)}</button>`).join('')}</div>
     </div>
-    <div class="field"><label>Datum</label><input type="date" id="dt" value="${date}" max="${todayISO()}"></div>
-    <div class="field"><label>Status</label>
-      <div class="seg"><button data-s="paid" aria-pressed="true">Ausgezahlt</button><button data-s="open" aria-pressed="false">Noch offen</button></div>
+    <div class="field"><label>${tr('date')}</label><input type="date" id="dt" value="${date}" max="${todayISO()}"></div>
+    <div class="field"><label>${tr('status_l')}</label>
+      <div class="seg"><button data-s="paid" aria-pressed="true">${tr('st_paid')}</button><button data-s="open" aria-pressed="false">${tr('st_open')}</button></div>
     </div>
-    <button class="btn primary block" data-save>Speichern</button>`;
-  openSheet('Auszahlung erfassen', body, {onMount(root){
+    <button class="btn primary block" data-save>${tr('save')}</button>`;
+  openSheet(tr('sh_payout'), body, {onMount(root){
     const ad = root.querySelector('#ad');
     root.querySelectorAll('[data-k]').forEach(b=> b.onclick = ()=>{ amt.press(b.dataset.k); ad.innerHTML=amt.display(); buzz(6); });
     root.querySelectorAll('[data-b]').forEach(b=> b.onclick = ()=>{ bId=b.dataset.b; root.querySelectorAll('[data-b]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.b===bId)); });
     root.querySelectorAll('[data-s]').forEach(b=> b.onclick = ()=>{ status=b.dataset.s; root.querySelectorAll('[data-s]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.s===status)); });
     root.querySelector('#dt').onchange = e => date = e.target.value || todayISO();
     root.querySelector('[data-save]').onclick = ()=>{
-      if(amt.cents<=0){ toast('Bitte Betrag eingeben'); return; }
+      if(amt.cents<=0){ toast(tr('t_enter_amount')); return; }
       S.payouts.push({id:uid(), d:date, b:bId, a:amt.cents, s:status, src:'manual'});
-      save(); closeSheet(); render(); toast('Auszahlung gespeichert');
+      save(); closeSheet(); render(); toast(tr('t_payout_saved'));
     };
   }});
 }
 function sheetPayoutEdit(p){
   const body = `
     <div class="card" style="box-shadow:none;margin-bottom:14px">
-      <div class="kv"><span class="k">Friseur</span><span class="v" style="font-size:14px">${esc(bname(p.b))}</span></div>
-      <div class="kv"><span class="k">Datum</span><span class="v" style="font-size:14px">${dateShort(p.d)}</span></div>
-      <div class="kv total"><span class="k">Betrag</span><span class="v">${eur(p.a)}</span></div>
+      <div class="kv"><span class="k">${tr('f_barber')}</span><span class="v" style="font-size:14px">${esc(bname(p.b))}</span></div>
+      <div class="kv"><span class="k">${tr('date')}</span><span class="v" style="font-size:14px">${dateShort(p.d)}</span></div>
+      <div class="kv total"><span class="k">${tr('amount_l')}</span><span class="v">${eur(p.a)}</span></div>
     </div>
-    <div class="field"><label>Status</label>
-      <div class="seg"><button data-s="paid" aria-pressed="${p.s==='paid'}">Ausgezahlt</button><button data-s="open" aria-pressed="${p.s==='open'}">Noch offen</button></div>
+    <div class="field"><label>${tr('status_l')}</label>
+      <div class="seg"><button data-s="paid" aria-pressed="${p.s==='paid'}">${tr('st_paid')}</button><button data-s="open" aria-pressed="${p.s==='open'}">${tr('st_open')}</button></div>
     </div>
-    <button class="btn danger block" data-del>Auszahlung löschen</button>`;
-  openSheet('Auszahlung', body, {onMount(root){
+    <button class="btn danger block" data-del>${tr('del_payout')}</button>`;
+  openSheet(tr('sh_payout_e'), body, {onMount(root){
     root.querySelectorAll('[data-s]').forEach(b=> b.onclick = ()=>{
       p.s = b.dataset.s; save();
       root.querySelectorAll('[data-s]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.s===p.s));
-      render(); toast(p.s==='paid'?'Als bezahlt markiert':'Als offen markiert');
+      render(); toast(p.s==='paid'?tr('t_marked_paid'):tr('t_marked_open'));
     });
-    root.querySelector('[data-del]').onclick = ()=>{ S.payouts = S.payouts.filter(x=>x.id!==p.id); save(); closeSheet(); render(); toast('Gelöscht'); };
+    root.querySelector('[data-del]').onclick = ()=>{ S.payouts = S.payouts.filter(x=>x.id!==p.id); save(); closeSheet(); render(); toast(tr('t_deleted')); };
   }});
 }
 
@@ -1463,16 +1866,16 @@ function confirmClose(){
         if(!tt.count) return '';
         return `<div class="kv"><span class="k">${esc(b.name)} <span style="color:var(--ink-3);font-size:12px">(${tt.count})</span></span><span class="v">${eur(tt.total)}</span></div>`;
       }).join('')}
-      <div class="kv"><span class="k">Bar</span><span class="v" style="color:var(--bar)">${eur(t.bar)}</span></div>
-      <div class="kv"><span class="k">Karte</span><span class="v" style="color:var(--card)">${eur(t.karte)}</span></div>
-      <div class="kv"><span class="k">Ausgaben</span><span class="v" style="color:var(--open)">− ${eur(expSum)}</span></div>
-      <div class="kv total"><span class="k">Umsatz gesamt</span><span class="v">${eur(t.total)}</span></div>
+      <div class="kv"><span class="k">${tr('bar')}</span><span class="v" style="color:var(--bar)">${eur(t.bar)}</span></div>
+      <div class="kv"><span class="k">${tr('card')}</span><span class="v" style="color:var(--card)">${eur(t.karte)}</span></div>
+      <div class="kv"><span class="k">${tr('expenses')}</span><span class="v" style="color:var(--open)">− ${eur(expSum)}</span></div>
+      <div class="kv total"><span class="k">${tr('total_revenue')}</span><span class="v">${eur(t.total)}</span></div>
     </section>
-    ${missing.length?`<p class="hintline" style="margin:12px 0 0;color:var(--open)">Ohne Gehaltseintrag: ${missing.map(b=>esc(b.name)).join(', ')}. Du kannst trotzdem abschließen und später nachtragen.</p>`:''}
-    <button class="btn primary block" data-yes style="margin-top:14px">Tag abschließen</button>
-    <button class="btn ghost block" data-no style="margin-top:10px">Zurück</button>`;
-  openSheet(`Abschluss ${dateShort(d)}`, body, {onMount(root){
-    root.querySelector('[data-yes]').onclick = ()=>{ S.closes[d]=true; save(); closeSheet(); render(); buzz(18); toast('Tag abgeschlossen'); };
+    ${missing.length?`<p class="hintline" style="margin:12px 0 0;color:var(--open)">${tr('no_salary_for', missing.map(b=>esc(b.name)).join(', '))}</p>`:''}
+    <button class="btn primary block" data-yes style="margin-top:14px">${tr('close_day')}</button>
+    <button class="btn ghost block" data-no style="margin-top:10px">${tr('back')}</button>`;
+  openSheet(tr('sh_close', dateShort(d)), body, {onMount(root){
+    root.querySelector('[data-yes]').onclick = ()=>{ S.closes[d]=true; save(); closeSheet(); render(); buzz(18); toast(tr('t_day_closed')); };
     root.querySelector('[data-no]').onclick = ()=> closeSheet();
   }});
 }
@@ -1480,6 +1883,9 @@ function confirmClose(){
 /* ---------- Export / Reset ---------- */
 function csvEsc(s){ s = String(s==null?'':s); return /[";\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
 function exportCSV(range){
+  return inGerman(()=> exportCSVde(range));
+}
+function exportCSVde(range){
   const rows = [['Typ','Datum','Zeit','Friseur','Betrag','Zahlart','Kategorie','Status','Notiz']];
   const inR = d => !range || inRange(d, range);
   S.entries.filter(e=>inR(e.d)).sort((a,b)=>a.d.localeCompare(b.d)||a.t.localeCompare(b.t))
@@ -1490,17 +1896,17 @@ function exportCSV(range){
     .forEach(p=> rows.push(['Gehalt',p.d,'',bname(p.b),(p.a/100).toFixed(2).replace('.',','),'','',p.s==='paid'?'ausgezahlt':'offen','']));
   const csv = rows.map(r=>r.map(csvEsc).join(';')).join('\r\n');
   const name = range ? `salon-${range[0]}_bis_${range[1]}.csv` : 'salon-alle-daten.csv';
-  sheetText('CSV-Export', name, csv, `${rows.length-1} Zeilen · Semikolon-getrennt, öffnet direkt in Excel.`);
+  sheetText(tr('csv_title'), name, csv, tr('csv_hint', rows.length-1));
 }
 function confirmReset(){
-  openSheet('Demo-Daten löschen?', `
-    <p class="hintline">Alle Umsätze, Ausgaben und Gehälter werden gelöscht. Deine Friseur-Namen und der Salon-Name bleiben erhalten.<br><br><strong>Tipp:</strong> Mache vorher ein Backup, falls du die Daten noch brauchst.</p>
-    <button class="btn danger block" data-yes style="margin-top:14px">Ja, alles löschen</button>
-    <button class="btn ghost block" data-no style="margin-top:10px">Abbrechen</button>`,
+  openSheet(tr('sh_wipe_q'), `
+    <p class="hintline">${tr('wipe_txt')}</p>
+    <button class="btn danger block" data-yes style="margin-top:14px">${tr('yes_wipe')}</button>
+    <button class="btn ghost block" data-no style="margin-top:10px">${tr('cancel')}</button>`,
     {onMount(root){
       root.querySelector('[data-yes]').onclick = ()=>{
         S.entries=[]; S.expenses=[]; S.payouts=[]; S.closes={};
-        save(); closeSheet(); ui.date=todayISO(); ui.anchor=todayISO(); render(); toast('Alles gelöscht – bereit');
+        save(); closeSheet(); ui.date=todayISO(); ui.anchor=todayISO(); render(); toast(tr('t_wiped'));
       };
       root.querySelector('[data-no]').onclick = ()=> closeSheet();
     }});
@@ -1513,22 +1919,22 @@ function confirmReset(){
 function sheetSetup(first){
   let cols = others().map(b=>({id:b.id, name:b.name, entries:S.entries.filter(e=>e.b===b.id).length}));
   const body = `
-    ${first?'<p class="hintline" style="margin:-4px 0 16px">Zwei Angaben und du kannst loslegen. Alles lässt sich später unter „Mehr“ ändern.</p>':''}
-    <div class="field"><label>Salon</label>
-      <input type="text" id="shop" value="${esc(S.settings.shop||'')}" placeholder="z. B. Barbershop Hamza" maxlength="30" autocomplete="off"></div>
-    <div class="field"><label>Dein Name</label>
-      <input type="text" id="myname" value="${esc(me().name==='Ich'?'':me().name)}" placeholder="z. B. Hamza" maxlength="24" autocomplete="off"></div>
-    <div class="field"><label>Weitere Friseure</label><div id="cols"></div>
-      <button class="linkbtn" data-addcol>+ Friseur hinzufügen</button></div>
-    <button class="btn primary block" data-save>${first?'Los geht’s':'Speichern'}</button>`;
-  openSheet(first?'Willkommen':'Salon & Friseure', body, {onMount(root){
+    ${first?`<p class="hintline" style="margin:-4px 0 16px">${tr('setup_hint')}</p>`:''}
+    <div class="field"><label>${tr('shop')}</label>
+      <input type="text" id="shop" value="${esc(S.settings.shop||'')}" placeholder="${tr('shop_ph')}" maxlength="30" autocomplete="off"></div>
+    <div class="field"><label>${tr('your_name')}</label>
+      <input type="text" id="myname" value="${esc(me().name==='Ich'?'':me().name)}" placeholder="${tr('your_name_ph')}" maxlength="24" autocomplete="off"></div>
+    <div class="field"><label>${tr('more_barbers')}</label><div id="cols"></div>
+      <button class="linkbtn" data-addcol>${tr('add_barber_l')}</button></div>
+    <button class="btn primary block" data-save>${first?tr('lets_go'):tr('save')}</button>`;
+  openSheet(first?tr('sh_welcome'):tr('sh_setup'), body, {onMount(root){
     const box = root.querySelector('#cols');
     const draw = ()=>{
       box.innerHTML = cols.map((c,i)=>`
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <input type="text" data-ci="${i}" value="${esc(c.name)}" placeholder="Name" maxlength="24" autocomplete="off"
+          <input type="text" data-ci="${i}" value="${esc(c.name)}" placeholder="${tr('name')}" maxlength="24" autocomplete="off"
             style="flex:1;padding:12px 13px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink);font-size:15.5px;font-family:inherit">
-          ${c.entries?'':`<button class="btn ghost" data-rm="${i}" style="padding:0 15px;flex:none" aria-label="Entfernen">✕</button>`}
+          ${c.entries?'':`<button class="btn ghost" data-rm="${i}" style="padding:0 15px;flex:none" aria-label="${tr('a_remove')}">✕</button>`}
         </div>`).join('');
       box.querySelectorAll('[data-ci]').forEach(inp=> inp.oninput = ()=> cols[+inp.dataset.ci].name = inp.value);
       box.querySelectorAll('[data-rm]').forEach(b=> b.onclick = ()=>{ cols.splice(+b.dataset.rm,1); draw(); });
@@ -1549,7 +1955,7 @@ function sheetSetup(first){
       S.barbers = S.barbers.filter(b=> b.me || keep.has(b.id) || S.entries.some(e=>e.b===b.id));
       S.settings.onboarded = true;
       save(); closeSheet(); render();
-      toast(first?'Fertig – los geht’s':'Gespeichert');
+      toast(first?tr('t_setup_done'):tr('t_saved'));
     };
   }});
 }
@@ -1565,16 +1971,17 @@ function restoreBackup(){
     const rd = new FileReader();
     rd.onload = ()=>{
       let data;
-      try{ data = JSON.parse(rd.result); }catch(e){ toast('Datei nicht lesbar'); return; }
-      if(!data || !Array.isArray(data.barbers) || !Array.isArray(data.entries)){ toast('Keine gültige Sicherungsdatei'); return; }
-      openSheet('Backup einspielen?', `<p class="hintline">Die Datei enthält <strong>${data.entries.length} Umsätze</strong>, ${(data.expenses||[]).length} Ausgaben und ${(data.payouts||[]).length} Gehaltseinträge.<br><br>Deine aktuellen Daten werden dabei <strong>ersetzt</strong>.</p>
-        <button class="btn primary block" data-yes style="margin-top:14px">Jetzt wiederherstellen</button>
-        <button class="btn ghost block" data-no style="margin-top:10px">Abbrechen</button>`,
+      try{ data = JSON.parse(rd.result); }catch(e){ toast(tr('t_not_readable')); return; }
+      if(!data || !Array.isArray(data.barbers) || !Array.isArray(data.entries)){ toast(tr('t_invalid_backup')); return; }
+      openSheet(tr('sh_restore_q'), `<p class="hintline">${tr('restore_txt', data.entries.length, (data.expenses||[]).length, (data.payouts||[]).length)}</p>
+        <button class="btn primary block" data-yes style="margin-top:14px">${tr('restore_now')}</button>
+        <button class="btn ghost block" data-no style="margin-top:10px">${tr('cancel')}</button>`,
         {onMount(r){
           r.querySelector('[data-yes]').onclick = ()=>{
             S = Object.assign(defaultState(), data);
             S.settings = Object.assign({shop:'', onboarded:true}, data.settings||{});
-            save(); closeSheet(); ui.date=todayISO(); ui.anchor=todayISO(); render(); toast('Wiederhergestellt');
+            LANG = LANGS[S.settings.lang] ? S.settings.lang : LANG;
+            save(); closeSheet(); ui.date=todayISO(); ui.anchor=todayISO(); applyLang(); render(); toast(tr('t_restored'));
           };
           r.querySelector('[data-no]').onclick = ()=> closeSheet();
         }});
@@ -1585,8 +1992,8 @@ function restoreBackup(){
 }
 
 function loadDemo(){
-  if(S.entries.length){ toast('Es sind schon Daten vorhanden'); return; }
-  seedDemo(S); render(); toast('Beispieldaten geladen');
+  if(S.entries.length){ toast(tr('t_have_data')); return; }
+  seedDemo(S); render(); toast(tr('t_demo_loaded'));
 }
 
 /* ============================================================
@@ -1608,9 +2015,9 @@ function registerSW(){
   });
 }
 function offerUpdate(reg){
-  openSheet('Neue Version', `<p class="hintline">Eine neuere Version der App ist bereit. Deine Daten bleiben natürlich erhalten.</p>
-    <button class="btn primary block" data-up style="margin-top:14px">Jetzt aktualisieren</button>
-    <button class="btn ghost block" data-later style="margin-top:10px">Später</button>`,
+  openSheet(tr('sh_update'), `<p class="hintline">${tr('update_txt')}</p>
+    <button class="btn primary block" data-up style="margin-top:14px">${tr('update_now')}</button>
+    <button class="btn ghost block" data-later style="margin-top:10px">${tr('later')}</button>`,
     {onMount(r){
       r.querySelector('[data-up]').onclick = ()=>{ if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'}); closeSheet(); };
       r.querySelector('[data-later]').onclick = ()=> closeSheet();
@@ -1893,6 +2300,20 @@ function buildReport(range, label, detailed){
   return doc.build('Kassenbericht ' + label);
 }
 
+function rangeLabelDE(range){
+  return inGerman(()=>{
+    if(!range) return 'Alle Daten';
+    if(range[0] === range[1]) return dateLabel(range[0]);
+    const a = fromISO(range[0]), b = fromISO(range[1]);
+    const lastOfMonth = new Date(b.getFullYear(), b.getMonth()+1, 0).getDate();
+    if(a.getDate()===1 && a.getMonth()===b.getMonth() && a.getFullYear()===b.getFullYear() && b.getDate()===lastOfMonth)
+      return CAL.de.mon[a.getMonth()] + ' ' + a.getFullYear();
+    if(a.getMonth()===0 && a.getDate()===1 && b.getMonth()===11 && b.getDate()===31 && a.getFullYear()===b.getFullYear())
+      return 'Jahr ' + a.getFullYear();
+    return dateShort(range[0]) + ' – ' + dateShort(range[1]) + ' ' + b.getFullYear();
+  });
+}
+
 function downloadBytes(name, bytes, mime){
   try{
     const blob = new Blob([bytes], {type: mime});
@@ -1902,29 +2323,30 @@ function downloadBytes(name, bytes, mime){
     document.body.appendChild(a);
     a.click();
     setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch(e){} a.remove(); }, 4000);
-    toast(name + ' gespeichert');
+    toast(tr('t_file_dl', name));
     return true;
-  }catch(e){ toast('Speichern nicht möglich'); return false; }
+  }catch(e){ toast(tr('t_no_save')); return false; }
 }
 
-function exportPDF(range, label, detailed){
-  const bytes = buildReport(range, label, detailed);
+function exportPDF(range, detailed){
+  const label = rangeLabelDE(range);
+  const bytes = inGerman(()=> buildReport(range, label, detailed));
   const slug = (label || 'gesamt').replace(/[^0-9A-Za-zÄÖÜäöü]+/g,'-').replace(/^-|-$/g,'').toLowerCase();
   downloadBytes('kassenbericht-' + slug + '.pdf', bytes, 'application/pdf');
 }
 
 function sheetExport(range, label){
   const body = `
-    <p class="hintline" style="margin:-4px 0 16px">Zeitraum: <strong>${esc(label)}</strong></p>
-    <button class="btn primary block" data-pdf>PDF-Bericht</button>
-    <p class="hintline" style="margin:7px 2px 14px">Umsatz, Bar/Karte, Friseure, Gehalt, Ausgaben und Ergebnis auf einen Blick.</p>
-    <button class="btn block" data-pdfall>PDF mit allen Buchungen</button>
-    <p class="hintline" style="margin:7px 2px 14px">Zusätzlich jede einzelne Buchung – für den Steuerberater.</p>
-    <button class="btn block" data-csv2>CSV-Datei für Excel</button>
-    ${EMBEDDED ? '<p class="hintline" style="margin:14px 0 0;text-align:center">Das Speichern von Dateien funktioniert in der installierten App. In dieser Web-Vorschau ist es vom Browser gesperrt.</p>' : ''}`;
-  openSheet('Exportieren', body, {onMount(root){
-    root.querySelector('[data-pdf]').onclick    = ()=>{ closeSheet(); exportPDF(range, label, false); };
-    root.querySelector('[data-pdfall]').onclick = ()=>{ closeSheet(); exportPDF(range, label, true); };
+    <p class="hintline" style="margin:-4px 0 16px">${tr('period_l')} <strong>${esc(label)}</strong></p>
+    <button class="btn primary block" data-pdf>${tr('pdf_report')}</button>
+    <p class="hintline" style="margin:7px 2px 14px">${tr('pdf_report_sub')}</p>
+    <button class="btn block" data-pdfall>${tr('pdf_all')}</button>
+    <p class="hintline" style="margin:7px 2px 14px">${tr('pdf_all_sub')}</p>
+    <button class="btn block" data-csv2>${tr('csv_excel')}</button>
+    ${EMBEDDED ? `<p class="hintline" style="margin:14px 0 0;text-align:center">${tr('embed_note')}</p>` : ''}`;
+  openSheet(tr('sh_export'), body, {onMount(root){
+    root.querySelector('[data-pdf]').onclick    = ()=>{ closeSheet(); exportPDF(range, false); };
+    root.querySelector('[data-pdfall]').onclick = ()=>{ closeSheet(); exportPDF(range, true); };
     root.querySelector('[data-csv2]').onclick   = ()=>{ closeSheet(); exportCSV(range); };
   }});
 }
@@ -1935,6 +2357,7 @@ function sheetExport(range, label){
 if(!S){ S = defaultState(); save(); }
 document.addEventListener('gesturestart', e=> e.preventDefault());
 document.addEventListener('dblclick', e=> e.preventDefault(), {passive:false});
+applyLang();
 render();
 if(!S.settings.onboarded) setTimeout(()=> sheetSetup(true), 400);
 registerSW();

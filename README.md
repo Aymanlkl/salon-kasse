@@ -48,6 +48,17 @@ Trotzdem gilt: kein Browser-Speicher ist garantiert. Deshalb erinnert die App
 alle 14 Tage an **Mehr → Backup speichern**. Die Datei in iCloud oder Google
 Drive legen, zurückholen über *Mehr → Backup wiederherstellen*.
 
+## Sprachen
+
+Die Oberfläche gibt es auf **Deutsch, Französisch und Arabisch**; umschalten
+unter *Mehr → Sprache*. Arabisch stellt die ganze App auf Rechts-nach-links um,
+Zahlen und Beträge bleiben dabei in lateinischen Ziffern.
+
+**PDF- und CSV-Export bleiben immer deutsch** – unabhängig von der eingestellten
+Sprache, damit Steuerberater und Ämter die Unterlagen ohne Rückfragen annehmen.
+Auch die gespeicherten Kategorien (Material, Miete, Sonstiges) bleiben intern
+deutsch, angezeigt werden sie übersetzt.
+
 ## Export
 
 Unter **Bericht → Zeitraum exportieren** (oder *Mehr → Bericht exportieren*):
