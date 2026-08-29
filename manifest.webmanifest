@@ -1,0 +1,21 @@
+{
+  "name": "Salon Kasse",
+  "short_name": "Salon Kasse",
+  "description": "Tageskasse für den Friseursalon: Kunden mit Bar oder Karte erfassen, Umsatz pro Friseur, Tagesabschluss und Gehalt.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "/salon-kasse",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#EEF1EE",
+  "theme_color": "#EEF1EE",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
