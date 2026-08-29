@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Salon Kasse">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=Instrument+Serif:ital@0;1&family=Noto+Sans+Arabic:wght@400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;600;700;800&family=Noto+Sans+Arabic:wght@400..700&display=swap">
 <style>
 /* ============================================================
    Salon Kasse — Design tokens
@@ -72,7 +72,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 /* ---------- shell ---------- */
 #app{
   position:fixed;inset:0;margin:0 auto;max-width:480px;width:100%;
-  display:grid;grid-template-rows:auto 1fr auto;
+  display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:minmax(0,1fr);
   background:var(--ground);overflow:hidden;
 }
 @media (min-width:520px){
@@ -82,6 +82,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
 /* ---------- top bar ---------- */
 #topbar{
+  min-width:0;
   padding:calc(env(safe-area-inset-top) + 8px) 16px 8px;
   background:var(--ground);border-bottom:1px solid var(--line);
   display:flex;align-items:center;gap:10px;min-height:56px;
@@ -227,14 +228,15 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
 /* tab bar */
 #tabbar{
-  display:grid;grid-template-columns:repeat(5,1fr);
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
   border-top:1px solid var(--line);background:var(--surface);
   padding-bottom:env(safe-area-inset-bottom);
 }
 #tabbar button{
   display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 7px;color:var(--ink-3);
 }
-#tabbar button .lbl{font-size:11px;font-weight:600;font-stretch:92%;letter-spacing:.02em}
+#tabbar button .lbl{font-size:11px;font-weight:600;font-stretch:92%;letter-spacing:.02em;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #tabbar button[aria-current="page"]{color:var(--brass)}
 #tabbar svg{width:22px;height:22px}
 
@@ -364,6 +366,108 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 [dir="rtl"] .chip .v,[dir="rtl"] .hero-fig,[dir="rtl"] .row .lead{text-align:left}
 [dir="rtl"] .eyebrow{letter-spacing:0}
 [dir="rtl"] .backup-card{text-align:right}
+
+/* ══════════ Studio: Kennzahlen, Diagramme, Tabellen ══════════ */
+:root{
+  --ground:#F4F5F7; --surface:#FFFFFF; --surface-2:#F7F8FA;
+  --ink:#14151A; --ink-2:#585C68; --ink-3:#6B7180;
+  --line:#ECEEF2; --line-2:#DDE0E7;
+  --brass:#17181D; --on-brass:#fff; --brass-soft:#EEEFF3;
+  --bar:#8A5A0F; --bar-soft:#FDF2DE; --card:#245C8F; --card-soft:#E5EFF9;
+  --pos:#0F7A52; --pos-soft:#E4F5EC; --open:#B4402A; --open-soft:#FCE9E4;
+  --shadow:0 1px 2px rgba(20,21,26,.04), 0 8px 24px -14px rgba(20,21,26,.22);
+  --r:20px; --r-sm:14px;
+}
+body,#app{font-family:'Manrope','Archivo','Noto Sans Arabic',system-ui,sans-serif;letter-spacing:-.005em}
+#view{gap:12px}
+#topbar{background:var(--ground);border-bottom:0;padding-top:calc(env(safe-area-inset-top) + 12px);padding-bottom:6px;gap:12px}
+.tb-title{font-family:'Manrope','Noto Sans Arabic',sans-serif;font-weight:800;font-size:19.5px;
+  letter-spacing:-.025em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-sub{font-size:12px;font-weight:600;color:var(--ink-3);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:100%;display:block;text-align:start;min-width:0}
+.ava{width:38px;height:38px;border-radius:13px;flex:none;display:grid;place-items:center;
+  background:var(--ink);color:#fff;font-weight:800;font-size:14px}
+.daynav{background:var(--surface);border-color:transparent;box-shadow:var(--shadow);flex:none}
+.daynav button{width:38px;height:38px}
+.daynav .today{width:auto;padding:0 10px;font-size:11.5px}
+
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.k-tile{background:var(--surface);border-radius:18px;padding:12px 14px 11px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:2px;min-width:0}
+.k-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.k-lab{font-size:12px;font-weight:700;color:var(--ink-3)}
+.k-ico{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex:none}
+.k-ico svg{width:16px;height:16px}
+.k-val{font-size:21px;font-weight:800;letter-spacing:-.035em;font-variant-numeric:tabular-nums;margin-top:3px;line-height:1.1}
+.k-delta{display:inline-flex;align-items:center;gap:4px;margin-top:7px;padding:4px 8px;border-radius:8px;
+  font-size:11.5px;font-weight:700;width:fit-content}
+.k-delta.up{background:var(--pos-soft);color:var(--pos)}
+.k-delta.down{background:var(--open-soft);color:var(--open)}
+.k-delta.flat{background:var(--surface-2);color:var(--ink-3)}
+.k-tile.mint .k-ico{background:#DCF0E6;color:#0F7A52}
+.k-tile.lila .k-ico{background:#E6E3F8;color:#4B3FA8}
+.k-tile.gold .k-ico{background:#F9E9CB;color:#8A5A0F}
+.k-tile.blau .k-ico{background:#DCEAF7;color:#245C8F}
+.k-sub{font-size:11.5px;color:var(--ink-3);font-weight:600;margin-top:7px}
+
+.chart{padding:14px 16px 10px}
+.c-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:22px}
+.c-title{font-size:15.5px;font-weight:800;letter-spacing:-.02em}
+.c-sub{font-size:12px;font-weight:700;color:var(--ink-3)}
+.bars{display:flex;align-items:flex-end;gap:7px;height:96px;padding-bottom:20px;position:relative}
+.bars::before{content:"";position:absolute;left:0;right:0;top:0;bottom:20px;
+  background-image:repeating-linear-gradient(to top,transparent 0 25%,var(--line) 25% calc(25% + 1px))}
+.bcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative;min-width:0}
+.bcol i{display:block;width:100%;background:var(--ink);border-radius:6px 6px 3px 3px;min-height:3px}
+.bcol.hi i{background:var(--bar)}
+.bcol span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:10.5px;font-weight:700;color:var(--ink-3)}
+.bcol b{position:absolute;top:-15px;left:0;right:0;text-align:center;font-size:9.5px;font-weight:700;
+  color:var(--ink-3);font-variant-numeric:tabular-nums;direction:ltr}
+.ring{display:flex;align-items:center;gap:18px;padding:16px}
+.ring svg{width:104px;height:104px;flex:none;transform:rotate(-90deg)}
+.ring-leg{display:flex;flex-direction:column;gap:14px;flex:1;min-width:0}
+.leg{display:flex;align-items:center;gap:9px;justify-content:space-between}
+.leg .lw{display:flex;align-items:center;gap:9px;min-width:0}
+.leg i{width:10px;height:10px;border-radius:4px;flex:none}
+.leg .lt{font-size:12px;font-weight:700;color:var(--ink-3)}
+.leg .lv{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+.thead{display:flex;align-items:center;gap:11px;padding:9px 16px 8px;border-bottom:1px solid var(--line)}
+.thead span{font-size:11px;font-weight:800;color:var(--ink-3)}
+.rows .row{padding:12px 16px}
+.row .t1{font-weight:700;font-size:14.5px;letter-spacing:-.01em}
+.row .amt{font-weight:800;letter-spacing:-.02em}
+.row .lead{font-weight:700;color:var(--ink-3)}
+.dotpill{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:8px;
+  font-size:11px;font-weight:700;white-space:nowrap}
+.dotpill i{width:6px;height:6px;border-radius:99px;flex:none}
+.dotpill.bar{background:var(--bar-soft);color:var(--bar)} .dotpill.bar i{background:var(--bar)}
+.dotpill.karte{background:var(--card-soft);color:var(--card)} .dotpill.karte i{background:var(--card)}
+
+.card{border:0;border-radius:20px}
+.sec-head{margin:12px 0 -3px;padding:0 4px}
+.sec-head .eyebrow{font-size:13.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink);text-transform:none}
+.sec-act{font-weight:700}
+.pill{border-radius:8px;font-weight:700}
+.btn{border-radius:14px;font-weight:800;letter-spacing:-.01em}
+.pay-btn{border-radius:16px;font-weight:800}
+.pad button{border-radius:14px;font-weight:700;background:var(--surface-2);border-color:transparent}
+.seg{background:var(--surface);border:0;border-radius:14px;padding:4px;box-shadow:var(--shadow)}
+.seg button{border-radius:11px;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff;box-shadow:none}
+.kv .k{font-weight:600} .kv .v{font-weight:800;letter-spacing:-.02em}
+.kv.total{background:var(--surface-2)}
+.brow .nm{font-weight:800;letter-spacing:-.01em} .brow .vl{font-weight:800;letter-spacing:-.02em}
+.track{height:7px;border-radius:99px;opacity:1;background:var(--line)}
+.track i{background:var(--ink)}
+#tabbar{background:var(--surface);border-top:0;box-shadow:0 -6px 24px -18px rgba(20,21,26,.5)}
+#tabbar button .lbl{font-weight:700;font-stretch:100%;font-size:10.5px}
+#tabbar button[aria-current="page"]{color:var(--ink)}
+#fab{background:var(--ground);box-shadow:0 -16px 20px -10px var(--ground)}
+[dir="rtl"] .bcol b,[dir="rtl"] .k-val,[dir="rtl"] .k-delta,[dir="rtl"] .k-sub,
+[dir="rtl"] .leg .lv,[dir="rtl"] .c-sub,[dir="rtl"] .thead span{direction:ltr}
+[dir="rtl"] .k-delta,[dir="rtl"] .k-sub{align-self:flex-end}
+[dir="rtl"] .thead span{text-align:start}
 
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.01ms !important;transition-duration:.01ms !important}
@@ -677,6 +781,7 @@ de:{
  team_empty:'Noch keine Kollegen angelegt',
  team_empty_hint:'Tippe unten auf „Friseur“ und trag deine Kollegen ein, dann siehst du hier ihre Kunden.',
  have_backup:'Ich habe schon eine Sicherungsdatei',
+ time_l:'Zeit', last7:'Letzte 7 Tage', new_l:'neu',
  partial:'Teilbetrag eintragen', sh_partial:'Teilzahlung · {0}', open_is:'noch offen: {0}',
  t_partial:'{0} verrechnet · {1} bleiben offen', t_partial_done:'{0} verrechnet · nichts mehr offen',
  max_is_open:'Höchstens {0} – so viel ist offen', all_open:'alles'
@@ -798,6 +903,7 @@ fr:{
  team_empty:'Aucun collègue enregistré',
  team_empty_hint:'Appuie en bas sur « Coiffeur » et saisis tes collègues, tu verras ensuite leurs clients ici.',
  have_backup:'J’ai déjà un fichier de sauvegarde',
+ time_l:'Heure', last7:'7 derniers jours', new_l:'nouveau',
  partial:'Saisir un acompte', sh_partial:'Acompte · {0}', open_is:'en attente : {0}',
  t_partial:'{0} imputé · {1} restent en attente', t_partial_done:'{0} imputé · plus rien en attente',
  max_is_open:'{0} au maximum – c’est ce qui reste', all_open:'tout'
@@ -919,6 +1025,7 @@ ar:{
  team_empty:'لم تُسجَّل أي زملاء بعد',
  team_empty_hint:'اضغط في الأسفل على «حلاق» وسجّل زملاءك، عندها ترى زبائنهم هنا.',
  have_backup:'لديّ نسخة احتياطية بالفعل',
+ time_l:'الوقت', last7:'آخر 7 أيام', new_l:'جديد',
  partial:'إدخال مبلغ جزئي', sh_partial:'دفعة جزئية · {0}', open_is:'غير مدفوع: {0}',
  t_partial:'تم احتساب {0} · يبقى {1} غير مدفوع', t_partial_done:'تم احتساب {0} · لم يبقَ شيء غير مدفوع',
  max_is_open:'{0} كحد أقصى – هذا ما تبقّى', all_open:'الكل'
@@ -1435,9 +1542,84 @@ function sheetText(title, filename, text, hint, onSaved){
 /* ============================================================
    Screens
    ============================================================ */
+/* ============================================================
+   Kennzahlen, Diagramme, Tabellen
+   ============================================================ */
+const IK = {
+  euro:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 6.5A6.5 6.5 0 1 0 17 17.5M4 10h9M4 14h9"/></svg>',
+  users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M3 19c0-3 2.7-4.9 6-4.9s6 1.9 6 4.9"/><path d="M16.5 5.4a3.4 3.4 0 0 1 0 6.4"/></svg>',
+  cash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/></svg>',
+  card:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.6"/><path d="M2.5 10h19"/></svg>',
+  up:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>',
+  down:'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'
+};
+
+/* Vergleich mit dem Vorzeitraum. Ohne Vorwert gibt es keinen Prozentwert. */
+function delta(jetzt, vorher){
+  if(!vorher) return jetzt ? {cls:'up', txt:tr('new_l')} : {cls:'flat', txt:'—'};
+  const p = Math.round((jetzt - vorher) / vorher * 100);
+  if(p === 0) return {cls:'flat', txt:'0 %'};
+  return {cls: p>0?'up':'down', txt:(p>0?'+':'') + p + ' %', ico: p>0?IK.up:IK.down};
+}
+function kTile(cls, ico, lab, val, d, sub){
+  return `<div class="k-tile ${cls}">
+    <div class="k-top"><span class="k-lab">${esc(lab)}</span><span class="k-ico">${ico}</span></div>
+    <span class="k-val money">${val}</span>
+    ${d ? `<span class="k-delta ${d.cls}">${d.ico||''}${d.txt}</span>` : ''}
+    ${sub ? `<span class="k-sub">${sub}</span>` : ''}
+  </div>`;
+}
+function kpiGrid(t, tVor){
+  return `<section class="kpi">
+    ${kTile('mint', IK.euro,  tr('revenue'), eur(t.total), delta(t.total, tVor.total))}
+    ${kTile('lila', IK.users, tr('cust_n'), String(t.count), delta(t.count, tVor.count),
+            t.count ? 'ø ' + eur(Math.round(t.total/t.count)) : '')}
+    ${kTile('gold', IK.cash,  tr('bar'), eur(t.bar), null, t.total?Math.round(t.bar/t.total*100)+' %':'0 %')}
+    ${kTile('blau', IK.card,  tr('card'), eur(t.karte), null, t.total?Math.round(t.karte/t.total*100)+' %':'0 %')}
+  </section>`;
+}
+/* Balken der letzten sieben Tage, der gewählte Tag hervorgehoben. */
+function weekChart(passt){
+  const tage = [];
+  for(let i=6;i>=0;i--){
+    const d = addDays(ui.date, -i);
+    tage.push({d, v: sum(S.entries.filter(e=> e.d===d && passt(e)), e=>e.a)});
+  }
+  const max = Math.max(1, ...tage.map(x=>x.v));
+  return `<section class="card chart">
+    <div class="c-head"><span class="c-title">${tr('last7')}</span><span class="c-sub money">${eur(sum(tage,x=>x.v))}</span></div>
+    <div class="bars">${tage.map((x,i)=>`
+      <div class="bcol${i===6?' hi':''}">
+        ${x.v?`<b>${eur0(x.v)}</b>`:''}
+        <i style="height:${Math.max(3, x.v/max*100)}%"></i>
+        <span>${cal().wds[fromISO(x.d).getDay()]}</span>
+      </div>`).join('')}</div>
+  </section>`;
+}
+/* Ring: Anteil Bar an Karte. */
+function ringCard(t){
+  const ges = t.total || 1;
+  const U = 2 * Math.PI * 42;
+  const barLen = t.bar / ges * U;
+  return `<section class="card ring">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="42" fill="none" stroke="var(--card)" stroke-width="15"/>
+      <circle cx="50" cy="50" r="42" fill="none" stroke="var(--bar)" stroke-width="15"
+        stroke-dasharray="${barLen.toFixed(2)} ${(U-barLen).toFixed(2)}"/>
+      <circle cx="50" cy="50" r="30" fill="var(--surface)"/>
+    </svg>
+    <div class="ring-leg">
+      <div class="leg"><span class="lw"><i style="background:var(--bar)"></i><span class="lt">${tr('bar')} ${Math.round(t.bar/ges*100)} %</span></span><span class="lv money">${eur(t.bar)}</span></div>
+      <div class="leg"><span class="lw"><i style="background:var(--card)"></i><span class="lt">${tr('card')} ${Math.round(t.karte/ges*100)} %</span></span><span class="lv money">${eur(t.karte)}</span></div>
+    </div>
+  </section>`;
+}
+
 function renderTopbar(){
   const tb = document.getElementById('topbar');
   const chPrev = isRTL() ? I.right : I.left, chNext = isRTL() ? I.left : I.right;
+  const kuerzel = (me().name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const ava = `<div class="ava">${esc(kuerzel)}</div>`;
   const dayNav = `
     <div class="daynav">
       <button data-day="-1" aria-label="${tr('a_prevday')}">${chPrev}</button>
@@ -1447,11 +1629,11 @@ function renderTopbar(){
 
   if(ui.tab==='heute' || ui.tab==='team' || ui.tab==='kasse'){
     const titles = {heute:tr('hd_today'), team:tr('tab_team'), kasse:tr('tab_cash')};
-    tb.innerHTML = `
+    tb.innerHTML = `${ava}
       <div class="tb-grow">
         <div class="tb-title">${titles[ui.tab]}</div>
         <button class="tb-sub" data-pickdate style="display:flex;align-items:center;gap:5px">
-          ${dateLabel(ui.date)} ${S.closes[ui.date]?'· '+tr('closed'):''}
+          ${S.closes[ui.date] ? dateShort(ui.date)+' · '+tr('closed') : dateLabel(ui.date)}
         </button>
       </div>
       ${dayNav}`;
@@ -1470,43 +1652,35 @@ function renderTopbar(){
       inp.showPicker ? inp.showPicker() : inp.click();
     };
   } else if(ui.tab==='bericht'){
-    tb.innerHTML = `<div class="tb-grow"><div class="tb-title">${tr('tab_report')}</div><div class="tb-sub">${esc(periodLabel())}</div></div>
+    tb.innerHTML = `${ava}<div class="tb-grow"><div class="tb-title">${tr('tab_report')}</div><div class="tb-sub">${esc(periodLabel())}</div></div>
       <div class="daynav">
         <button data-p="-1" aria-label="${tr('a_prev')}">${chPrev}</button>
         <button data-p="1" aria-label="${tr('a_next')}">${chNext}</button>
       </div>`;
     tb.querySelectorAll('[data-p]').forEach(b=> b.onclick = ()=>{ shiftPeriod(+b.dataset.p); render(); });
   } else {
-    tb.innerHTML = `<div class="tb-grow"><div class="tb-title">${tr('tab_more')}</div><div class="tb-sub">${tr('more_sub')}</div></div>`;
+    tb.innerHTML = `${ava}<div class="tb-grow"><div class="tb-title">${tr('tab_more')}</div><div class="tb-sub">${tr('more_sub')}</div></div>`;
   }
-}
-
-function heroCard(label, t, extra){
-  const w = t.total || 1;
-  return `<section class="card hero">
-    <div class="hero-top"><div class="eyebrow">${esc(label)}</div>${extra||''}</div>
-    <div class="hero-fig money">${eur(t.total)}</div>
-    <div class="hero-meta">${t.count} ${t.count===1?tr('cust_1'):tr('cust_n')}${t.count?` · ø ${eur(Math.round(t.total/t.count))}`:''}</div>
-    <div class="pbar"><i class="b" style="width:${(t.bar/w*100).toFixed(1)}%"></i><i class="k" style="width:${(t.karte/w*100).toFixed(1)}%"></i></div>
-    <div class="split">
-      <div class="chip bar"><span class="k">${tr('bar')}</span><span class="v">${eur(t.bar)}</span></div>
-      <div class="chip karte"><span class="k">${tr('card')}</span><span class="v">${eur(t.karte)}</span></div>
-    </div>
-  </section>`;
 }
 
 function entryRows(list, showBarber){
   if(!list.length) return `<div class="card"><div class="empty"><div class="big">${tr('no_entries')}</div><div class="sm">${tr('no_entries_hint')}</div></div></div>`;
-  return `<section class="card"><div class="rows">${list.map(e=>`
+  return `<section class="card">
+    <div class="thead">
+      <span style="width:44px">${tr('time_l')}</span>
+      <span style="flex:1">${tr('customer')}</span>
+      <span>${tr('status_l')}</span>
+      <span style="width:74px;text-align:end">${tr('amount_l')}</span>
+    </div>
+    <div class="rows">${list.map(e=>`
     <button class="row" data-entry="${e.id}">
       <span class="lead">${e.t}</span>
       <span class="main">
         <span class="t1">${esc(e.n || tr('customer'))}</span>
         ${showBarber?`<span class="t2">${esc(bname(e.b))}</span>`:''}
       </span>
-      <span class="pay-dot ${e.p==='bar'?'b':'k'}"></span>
-      <span class="paylbl">${e.p==='bar'?tr('bar'):tr('card')}</span>
-      <span class="amt money">${eur(e.a)}</span>
+      <span class="dotpill ${e.p==='bar'?'bar':'karte'}"><i></i>${e.p==='bar'?tr('bar'):tr('card')}</span>
+      <span class="amt money" style="width:74px;text-align:end">${eur(e.a)}</span>
     </button>`).join('')}</div></section>`;
 }
 
@@ -1524,10 +1698,11 @@ function backupWarn(){
 function screenHeute(){
   const list = entriesOn(ui.date).filter(e=> e.b===me().id);
   const t = totals(list);
-  const closed = S.closes[ui.date];
+  const tVor = totals(entriesOn(addDays(ui.date,-7)).filter(e=> e.b===me().id));
   return backupWarn()
-    + heroCard(tr('revenue_on', dateShort(ui.date)), t, closed?`<span class="pill closed">${tr('closed')}</span>`:'')
-    + `<div class="sec-head"><span class="eyebrow">${tr('entries')}</span><span class="eyebrow">${list.length}</span></div>`
+    + kpiGrid(t, tVor)
+    + weekChart(e=> e.b===me().id)
+    + `<div class="sec-head"><span class="eyebrow">${tr('entries')}</span><span class="sec-act">${list.length}</span></div>`
     + entryRows(list,false);
 }
 
@@ -1539,6 +1714,7 @@ function screenTeam(){
     </div></div>`;
   }
   const all = entriesOn(ui.date).filter(e=> e.b!==me().id);
+  const imTeam = e => ui.teamFilter==='all' ? e.b!==me().id : e.b===ui.teamFilter;
   const filtered = ui.teamFilter==='all' ? all : all.filter(e=>e.b===ui.teamFilter);
   const t = totals(filtered);
   const perB = others().map(b=>{
@@ -1551,7 +1727,8 @@ function screenTeam(){
       <button class="bchip" data-tf="all" aria-pressed="${ui.teamFilter==='all'}">${tr('all')}</button>
       ${others().map(b=>`<button class="bchip" data-tf="${b.id}" aria-pressed="${ui.teamFilter===b.id}">${esc(b.name)}</button>`).join('')}
     </div>
-    ${heroCard(ui.teamFilter==='all'?tr('team_on', dateShort(ui.date)):`${bname(ui.teamFilter)} ${dateShort(ui.date)}`, t)}
+    ${kpiGrid(t, totals(entriesOn(addDays(ui.date,-7)).filter(imTeam)))}
+    ${weekChart(imTeam)}
     ${perB.length? `<div class="sec-head"><span class="eyebrow">${tr('by_barber')}</span></div>
     <section class="card">${perB.map(x=>`
       <div class="brow">
@@ -1593,7 +1770,8 @@ function screenKasse(){
   }).join('');
 
   return `
-    ${heroCard(tr('total_rev_on', dateShort(d)), tAll, closed?`<span class="pill closed">${tr('closed')}</span>`:'')}
+    ${kpiGrid(tAll, totals(S.entries.filter(e=> e.d===addDays(d,-7))))}
+    ${ringCard(tAll)}
 
     <div class="sec-head"><span class="eyebrow">${tr('rev_by_barber')}</span></div>
     <section class="card">${perB.map(x=>`
@@ -1649,6 +1827,8 @@ function screenBericht(){
   const paid = sum(pays.filter(p=>p.s==='paid'),p=>p.a);
   const open = sum(pays.filter(p=>p.s==='open'),p=>p.a);
   const openAll = sum(S.payouts.filter(p=>p.s==='open'),p=>p.a);
+  const laenge = (fromISO(r[1]) - fromISO(r[0]))/86400000 + 1;
+  const tVor = totals(S.entries.filter(e=> inRange(e.d, [addDays(r[0], -laenge), addDays(r[0], -1)])));
 
   const perB = S.barbers.map(b=>({b, t: totals(ent.filter(e=>e.b===b.id))}))
     .filter(x=>x.t.count>0).sort((a,b)=>b.t.total-a.t.total);
@@ -1676,20 +1856,12 @@ function screenBericht(){
       ${['tag','woche','monat','jahr'].map(k=>`<button data-r="${k}" aria-pressed="${ui.range===k}">${tr({tag:'r_day',woche:'r_week',monat:'r_month',jahr:'r_year'}[k])}</button>`).join('')}
     </div>
 
-    <section class="card hero">
-      <div class="eyebrow">${tr('rev_period', esc(periodLabel()))}</div>
-      <div class="hero-fig money">${eur(t.total)}</div>
-      <div class="hero-meta">${t.count} ${tr('cust_n')}${t.count?` · ø ${eur(Math.round(t.total/t.count))}`:''}</div>
-      <div class="pbar"><i class="b" style="width:${(t.bar/w*100).toFixed(1)}%"></i><i class="k" style="width:${(t.karte/w*100).toFixed(1)}%"></i></div>
-      <div class="split">
-        <div class="chip bar"><span class="k">${tr('bar')} ${Math.round(t.bar/w*100)} %</span><span class="v">${eur(t.bar)}</span></div>
-        <div class="chip karte"><span class="k">${tr('card')} ${Math.round(t.karte/w*100)} %</span><span class="v">${eur(t.karte)}</span></div>
-      </div>
-      <div class="calc">
-        <div class="kv"><span class="k">${tr('expenses_n', exp.length)}</span><span class="v" style="color:var(--open)">− ${eur(expSum)}</span></div>
-        <div class="kv"><span class="k">${tr('salary_paid')}</span><span class="v" style="color:var(--open)">− ${eur(paid)}</span></div>
-        <div class="kv total"><span class="k">${tr('remains')}</span><span class="v">${eur(t.total-expSum-paid)}</span></div>
-      </div>
+    ${kpiGrid(t, tVor)}
+    ${ringCard(t)}
+    <section class="card">
+      <div class="kv"><span class="k">${tr('expenses_n', exp.length)}</span><span class="v" style="color:var(--open)">− ${eur(expSum)}</span></div>
+      <div class="kv"><span class="k">${tr('salary_paid')}</span><span class="v" style="color:var(--open)">− ${eur(paid)}</span></div>
+      <div class="kv total"><span class="k">${tr('remains')}</span><span class="v">${eur(t.total-expSum-paid)}</span></div>
     </section>
 
 
