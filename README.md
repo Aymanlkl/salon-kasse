@@ -3,6 +3,8 @@
 Tageskasse für den Friseursalon. Läuft als App auf dem Handy, komplett offline,
 alle Daten bleiben auf dem Gerät.
 
+**Live:** https://aymanlkl.github.io/salon-kasse/
+
 ## Dateien
 
     index.html              die ganze App (Design + Logik in einer Datei)
@@ -10,19 +12,14 @@ alle Daten bleiben auf dem Gerät.
     sw.js                   Service Worker: Offline-Betrieb + Update-Hinweis
     icons/                  App-Icons für Homescreen und Browser
 
-## Online stellen
+## Veröffentlichen
 
-Zum Installieren muss die App über **https** erreichbar sein. Ein
-Doppelklick auf `index.html` reicht dafür nicht – dann fehlt der Offline-Modus
-und „Zum Home-Bildschirm“ funktioniert nicht richtig.
+Die App liegt auf GitHub Pages. Änderungen gehen so live:
 
-Drei einfache Wege, alle kostenlos:
+    git add -A && git commit -m "..." && git push
 
-1. **Netlify Drop** – netlify.com/drop öffnen, den Ordner `app` per Drag & Drop
-   auf die Seite ziehen. Nach ein paar Sekunden gibt es eine https-Adresse.
-2. **Vercel** – vercel.com, „New Project“, Ordner hochladen.
-3. **GitHub Pages** – Ordnerinhalt in ein Repository legen,
-   Settings → Pages → Branch auswählen.
+Nach ein bis zwei Minuten ist die neue Fassung unter der Live-Adresse
+erreichbar.
 
 ## Auf dem Handy installieren
 
