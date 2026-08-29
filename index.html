@@ -86,7 +86,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   background:var(--ground);border-bottom:1px solid var(--line);
   display:flex;align-items:center;gap:10px;min-height:56px;
 }
-.tb-title{font-size:19px;font-weight:700;font-stretch:104%;letter-spacing:-.01em;line-height:1.15}
+.tb-title{font-family:'Instrument Serif','Noto Sans Arabic',Georgia,serif;font-weight:400;font-size:26px;letter-spacing:-.01em;line-height:1.05}
 .tb-sub{font-size:12px;color:var(--ink-3);font-weight:500;margin-top:1px}
 .tb-grow{flex:1;min-width:0}
 .daynav{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px}
@@ -99,9 +99,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 /* ---------- scroll region ---------- */
 #view{
   overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;
-  padding:14px 14px 118px;
-  display:flex;flex-direction:column;gap:14px;
+  -webkit-overflow-scrolling:touch;touch-action:pan-y;
+  padding:14px 14px 150px;
+  display:flex;flex-direction:column;gap:12px;
 }
 
 /* ---------- type utilities ---------- */
@@ -117,7 +117,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
 .card-pad{padding:16px}
 .sec{display:flex;flex-direction:column;gap:8px}
-.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px;margin:10px 0 -5px}
 .sec-act{
   font-size:12.5px;font-weight:600;color:var(--brass);
   display:inline-block;padding:13px 10px;margin:-13px -10px;border-radius:9px;
@@ -143,6 +143,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .chip.karte .k,.chip.karte .v{color:var(--card)}
 
 /* stacked payment bar */
+.calc{margin:16px -16px -14px;border-top:1px solid var(--line)}
+.calc .kv{padding:10px 16px}
 .pbar{display:flex;height:7px;border-radius:99px;overflow:hidden;background:var(--line);margin-top:12px}
 .pbar i{display:block;height:100%}
 .pbar i.b{background:var(--bar)}
@@ -165,6 +167,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .pay-dot{width:9px;height:9px;border-radius:99px;flex:none}
 .pay-dot.b{background:var(--bar)}
 .pay-dot.k{background:var(--card)}
+.paylbl{font-size:11px;color:var(--ink-3);white-space:nowrap;font-weight:500;min-width:34px}
 
 /* pills */
 .pill{
@@ -179,9 +182,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .pill.act-chip{background:var(--brass);color:var(--on-brass);padding:5px 12px}
 
 /* segmented */
-.seg{display:flex;gap:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg{display:flex;gap:3px;background:var(--surface-2);border:0;border-radius:11px;padding:3px}
 .seg button{
-  flex:1;padding:8px 4px;border-radius:9px;font-size:13px;font-weight:600;font-stretch:96%;
+  flex:1;padding:7px 4px;border-radius:8px;font-size:12.5px;font-weight:600;font-stretch:96%;
   color:var(--ink-2);white-space:nowrap;
 }
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.10)}
@@ -215,10 +218,12 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 /* FAB dock */
 #fab{
   position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 62px);
-  padding:0 14px 12px;pointer-events:none;
-  background:linear-gradient(to top,var(--ground) 42%,transparent);
+  padding:14px 14px 12px;pointer-events:none;
+  background:var(--ground);
+  box-shadow:0 -16px 20px -10px var(--ground);
 }
 #fab .btn{pointer-events:auto;box-shadow:var(--shadow)}
+#fab .btn:not(.primary){background:var(--surface);border:1.5px solid var(--brass);color:var(--brass)}
 
 /* tab bar */
 #tabbar{
@@ -245,7 +250,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .brow .nm{font-size:14.5px;font-weight:600}
 .brow .vl{font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums;font-stretch:104%}
 .brow .l2{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:5px;font-size:11.5px;color:var(--ink-3)}
-.track{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:7px}
+.track{height:4px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:8px;opacity:.75}
 .track i{display:block;height:100%;background:var(--brass);border-radius:99px}
 
 /* key-value list */
@@ -258,7 +263,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .kv.total .v{font-size:17px}
 
 /* ---------- sheets ---------- */
-.sheet-wrap{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.sheet-wrap{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;overscroll-behavior:contain}
 .scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;transition:opacity .22s ease}
 .sheet-wrap.in .scrim{opacity:1}
 .sheet{
@@ -266,7 +271,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   border-radius:22px 22px 0 0;box-shadow:var(--shadow-sheet);
   padding:8px 16px calc(env(safe-area-inset-bottom) + 16px);
   transform:translateY(100%);transition:transform .28s cubic-bezier(.22,1,.36,1);
-  max-height:94dvh;overflow-y:auto;overscroll-behavior:contain;
+  max-height:88vh;              /* Rückfall für ältere iPhones */
+  max-height:88dvh;
+  overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;touch-action:pan-y;
 }
 .sheet-wrap.in .sheet{transform:translateY(0)}
 .grab{width:38px;height:4px;border-radius:99px;background:var(--line-2);margin:2px auto 12px}
@@ -326,6 +334,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   background:var(--surface-2);color:var(--ink);font-size:15.5px;font-family:inherit;
 }
 .field input:focus,.field textarea:focus{outline:none;border-color:var(--brass);background:var(--surface)}
+.field input,.field textarea{scroll-margin-bottom:120px}
 .hintline{font-size:13.5px;color:var(--ink-2);line-height:1.55}
 .linkbtn{display:flex;align-items:center;width:100%;text-align:start;min-height:44px;font-size:13.5px;font-weight:600;color:var(--brass);padding:0}
 
@@ -667,7 +676,10 @@ de:{
  anyway:'Trotzdem eintragen',
  team_empty:'Noch keine Kollegen angelegt',
  team_empty_hint:'Tippe unten auf „Friseur“ und trag deine Kollegen ein, dann siehst du hier ihre Kunden.',
- have_backup:'Ich habe schon eine Sicherungsdatei'
+ have_backup:'Ich habe schon eine Sicherungsdatei',
+ partial:'Teilbetrag eintragen', sh_partial:'Teilzahlung · {0}', open_is:'noch offen: {0}',
+ t_partial:'{0} verrechnet · {1} bleiben offen', t_partial_done:'{0} verrechnet · nichts mehr offen',
+ max_is_open:'Höchstens {0} – so viel ist offen', all_open:'alles'
 },
 fr:{
  tab_today:'Aujourd’hui', tab_team:'Équipe', tab_cash:'Caisse', tab_report:'Rapport', tab_more:'Plus',
@@ -785,7 +797,10 @@ fr:{
  anyway:'Saisir quand même',
  team_empty:'Aucun collègue enregistré',
  team_empty_hint:'Appuie en bas sur « Coiffeur » et saisis tes collègues, tu verras ensuite leurs clients ici.',
- have_backup:'J’ai déjà un fichier de sauvegarde'
+ have_backup:'J’ai déjà un fichier de sauvegarde',
+ partial:'Saisir un acompte', sh_partial:'Acompte · {0}', open_is:'en attente : {0}',
+ t_partial:'{0} imputé · {1} restent en attente', t_partial_done:'{0} imputé · plus rien en attente',
+ max_is_open:'{0} au maximum – c’est ce qui reste', all_open:'tout'
 },
 ar:{
  tab_today:'اليوم', tab_team:'الفريق', tab_cash:'الصندوق', tab_report:'التقرير', tab_more:'المزيد',
@@ -903,7 +918,10 @@ ar:{
  anyway:'إدخال رغم ذلك',
  team_empty:'لم تُسجَّل أي زملاء بعد',
  team_empty_hint:'اضغط في الأسفل على «حلاق» وسجّل زملاءك، عندها ترى زبائنهم هنا.',
- have_backup:'لديّ نسخة احتياطية بالفعل'
+ have_backup:'لديّ نسخة احتياطية بالفعل',
+ partial:'إدخال مبلغ جزئي', sh_partial:'دفعة جزئية · {0}', open_is:'غير مدفوع: {0}',
+ t_partial:'تم احتساب {0} · يبقى {1} غير مدفوع', t_partial_done:'تم احتساب {0} · لم يبقَ شيء غير مدفوع',
+ max_is_open:'{0} كحد أقصى – هذا ما تبقّى', all_open:'الكل'
 }
 };
 
@@ -1119,6 +1137,15 @@ function buzz(ms){ if(navigator.vibrate) try{ navigator.vibrate(ms||8); }catch(e
    Sheets
    ============================================================ */
 let sheetEl = null;
+/* Auf dem iPhone schiebt die Tastatur Eingabefelder aus dem Bild – nachführen. */
+function keepVisible(root){
+  root.querySelectorAll('input[type="text"],textarea').forEach(el=>{
+    el.addEventListener('focus', ()=> setTimeout(()=>{
+      try{ el.scrollIntoView({block:'center', behavior:'smooth'}); }catch(e){}
+    }, 320));
+  });
+}
+
 function openSheet(title, bodyHTML, opts){
   closeSheet(true);
   const wrap = document.createElement('div');
@@ -1138,6 +1165,7 @@ function openSheet(title, bodyHTML, opts){
   wrap.querySelector('[data-close]').addEventListener('click', ()=>closeSheet());
   requestAnimationFrame(()=> wrap.classList.add('in'));
   if(opts && opts.onMount) opts.onMount(wrap.querySelector('.sheet-body'), wrap);
+  keepVisible(wrap);
   return wrap;
 }
 function closeSheet(instant){
@@ -1474,9 +1502,10 @@ function entryRows(list, showBarber){
       <span class="lead">${e.t}</span>
       <span class="main">
         <span class="t1">${esc(e.n || tr('customer'))}</span>
-        <span class="t2">${showBarber?esc(bname(e.b))+' · ':''}${e.p==='bar'?tr('bar'):tr('card')}</span>
+        ${showBarber?`<span class="t2">${esc(bname(e.b))}</span>`:''}
       </span>
       <span class="pay-dot ${e.p==='bar'?'b':'k'}"></span>
+      <span class="paylbl">${e.p==='bar'?tr('bar'):tr('card')}</span>
       <span class="amt money">${eur(e.a)}</span>
     </button>`).join('')}</div></section>`;
 }
@@ -1656,14 +1685,13 @@ function screenBericht(){
         <div class="chip bar"><span class="k">${tr('bar')} ${Math.round(t.bar/w*100)} %</span><span class="v">${eur(t.bar)}</span></div>
         <div class="chip karte"><span class="k">${tr('card')} ${Math.round(t.karte/w*100)} %</span><span class="v">${eur(t.karte)}</span></div>
       </div>
+      <div class="calc">
+        <div class="kv"><span class="k">${tr('expenses_n', exp.length)}</span><span class="v" style="color:var(--open)">− ${eur(expSum)}</span></div>
+        <div class="kv"><span class="k">${tr('salary_paid')}</span><span class="v" style="color:var(--open)">− ${eur(paid)}</span></div>
+        <div class="kv total"><span class="k">${tr('remains')}</span><span class="v">${eur(t.total-expSum-paid)}</span></div>
+      </div>
     </section>
 
-    <section class="card">
-      <div class="kv"><span class="k">${tr('revenue')}</span><span class="v">${eur(t.total)}</span></div>
-      <div class="kv"><span class="k">${tr('expenses_n', exp.length)}</span><span class="v" style="color:var(--open)">− ${eur(expSum)}</span></div>
-      <div class="kv"><span class="k">${tr('salary_paid')}</span><span class="v" style="color:var(--open)">− ${eur(paid)}</span></div>
-      <div class="kv total"><span class="k">${tr('remains')}</span><span class="v">${eur(t.total-expSum-paid)}</span></div>
-    </section>
 
     <div class="sec-head"><span class="eyebrow">${tr('rev_per_barber')}</span></div>
     <section class="card">${perB.length? perB.map(x=>`
@@ -1942,12 +1970,63 @@ function sheetManualPayout(){
     };
   }});
 }
+/* Verrechnet einen Teilbetrag gegen die offenen Tage, älteste zuerst.
+   Reicht der Betrag für einen Tag nicht, wird dieser Tag geteilt:
+   der gezahlte Teil wird ausgezahlt, der Rest bleibt als eigener Eintrag offen. */
+function payPartial(bId, cents){
+  let rest = cents;
+  const offen = S.payouts.filter(p=>p.b===bId && p.s==='open').sort((a,b)=> a.d.localeCompare(b.d));
+  for(const p of offen){
+    if(rest <= 0) break;
+    if(p.a <= rest){ p.s = 'paid'; rest -= p.a; }
+    else {
+      const bleibt = p.a - rest;
+      p.a = rest; p.s = 'paid';
+      S.payouts.push({id:uid(), d:p.d, b:p.b, a:bleibt, s:'open', src:p.src});
+      rest = 0;
+    }
+  }
+  save();
+  return cents - rest;
+}
+
+function sheetPartial(bId){
+  const offen = sum(S.payouts.filter(p=>p.b===bId && p.s==='open'), p=>p.a);
+  const amt = makeAmount(0);
+  const chips = [5000, 10000, Math.round(offen/2/500)*500].filter(c=> c>0 && c<offen);
+  const body = `
+    <div class="hintline" style="text-align:center;margin-bottom:2px">${tr('open_is', eur(offen))}</div>
+    <div class="amt-display" id="ad">${amt.display()}</div>
+    <div class="quick">
+      ${chips.map(c=>`<button data-q="${c}">${eurShort(c)}</button>`).join('')}
+      <button data-q="${offen}">${tr('all_open')} ${eurShort(offen)}</button>
+    </div>
+    ${padHTML()}
+    <button class="btn primary block" data-save style="margin-top:14px">${tr('save')}</button>`;
+  openSheet(tr('sh_partial', bname(bId)), body, {onMount(root){
+    const ad = root.querySelector('#ad');
+    const sync = ()=> ad.innerHTML = amt.display();
+    root.querySelectorAll('[data-k]').forEach(b=> b.onclick = ()=>{ amt.press(b.dataset.k); sync(); buzz(6); });
+    root.querySelectorAll('[data-q]').forEach(b=> b.onclick = ()=>{ amt.set(+b.dataset.q); sync(); buzz(6); });
+    root.querySelector('[data-save]').onclick = ()=>{
+      if(amt.cents <= 0){ toast(tr('t_enter_amount')); return; }
+      if(amt.cents > offen){ toast(tr('max_is_open', eur(offen))); buzz(14); return; }
+      const gezahlt = payPartial(bId, amt.cents);
+      const rest = sum(S.payouts.filter(p=>p.b===bId && p.s==='open'), p=>p.a);
+      closeSheet(); render(); buzz(14);
+      toast(rest ? tr('t_partial', eur(gezahlt), eur(rest)) : tr('t_partial_done', eur(gezahlt)));
+      if(rest) sheetOpenSalary(bId);
+    };
+  }});
+}
+
 function sheetOpenSalary(bId){
   const list = S.payouts.filter(p=>p.b===bId && p.s==='open').sort((a,b)=> a.d.localeCompare(b.d));
   const total = sum(list, p=>p.a);
   const body = list.length ? `
     <div class="amt-display" style="padding:2px 0 16px"><span class="n">${eur(total).replace(' €','')}</span><span class="cur">€</span></div>
-    <button class="btn primary block" data-all style="margin-bottom:14px">${tr('mark_all_paid')}</button>
+    <button class="btn primary block" data-all>${tr('mark_all_paid')}</button>
+    <button class="btn block" data-part style="margin:10px 0 14px">${tr('partial')}</button>
     <section class="card" style="box-shadow:none"><div class="rows">${list.map(p=>`
       <button class="row" data-one="${p.id}">
         <span class="main"><span class="t1">${dateLabel(p.d)}</span></span>
@@ -1956,6 +2035,8 @@ function sheetOpenSalary(bId){
       </button>`).join('')}</div></section>`
     : `<p class="hintline">${tr('all_paid')}</p>`;
   openSheet(tr('sh_open_sal', bname(bId)), body, {onMount(root){
+    const teil = root.querySelector('[data-part]');
+    if(teil) teil.onclick = ()=> sheetPartial(bId);
     const alle = root.querySelector('[data-all]');
     if(alle) alle.onclick = ()=>{
       list.forEach(x=> x.s = 'paid');
