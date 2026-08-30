@@ -226,6 +226,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 #fab .btn{pointer-events:auto;box-shadow:var(--shadow)}
 #fab .btn:not(.primary){background:var(--surface);border:1.5px solid var(--brass);color:var(--brass)}
 #fab .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#fab .duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:8px}
+#fab .duo .btn{pointer-events:auto;padding:14px 6px;font-size:13.5px;box-shadow:var(--shadow);
+  min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:block;text-align:center}
+#fab .duo .btn:not(.primary):not(.ghost){background:var(--surface);border:1.5px solid var(--line-2);color:var(--ink)}
 #fab .trio .btn{pointer-events:auto;padding:14px 4px;font-size:13.5px;gap:5px;box-shadow:var(--shadow);
   min-width:0;overflow:hidden;white-space:nowrap}
 #fab .trio .btn:not(.primary){background:var(--surface);border:1.5px solid var(--line-2);color:var(--ink)}
@@ -787,7 +791,8 @@ de:{
  team_empty_hint:'Tippe unten auf „Friseur“ und trag deine Kollegen ein, dann siehst du hier ihre Kunden.',
  have_backup:'Ich habe schon eine Sicherungsdatei',
  time_l:'Zeit', last7:'Letzte 7 Tage', new_l:'neu',
- b_expense:'Ausgabe', b_salary:'Gehalt', my_day:'Mein Tag', sal_entered:'Gehalt eingetragen',
+ b_expense:'Ausgabe', b_salary:'Gehalt', b_payout:'Auszahlen',
+ sh_payout_pick:'Wer bekommt Geld?', nothing_open_now:'Es ist nichts offen', my_day:'Mein Tag', sal_entered:'Gehalt eingetragen',
  of_which_paid:'davon ausgezahlt', still_open_l:'noch offen', open_all_days:'Offen gesamt · alle Tage',
  partial:'Teilbetrag eintragen', sh_partial:'Teilzahlung · {0}', open_is:'noch offen: {0}',
  t_partial:'{0} verrechnet · {1} bleiben offen', t_partial_done:'{0} verrechnet · nichts mehr offen',
@@ -911,7 +916,8 @@ fr:{
  team_empty_hint:'Appuie en bas sur « Coiffeur » et saisis tes collègues, tu verras ensuite leurs clients ici.',
  have_backup:'J’ai déjà un fichier de sauvegarde',
  time_l:'Heure', last7:'7 derniers jours', new_l:'nouveau',
- b_expense:'Dépense', b_salary:'Salaire', my_day:'Ma journée', sal_entered:'Salaire saisi',
+ b_expense:'Dépense', b_salary:'Salaire', b_payout:'Verser',
+ sh_payout_pick:'Qui reçoit de l’argent ?', nothing_open_now:'Rien en attente', my_day:'Ma journée', sal_entered:'Salaire saisi',
  of_which_paid:'dont versé', still_open_l:'reste en attente', open_all_days:'En attente · tous les jours',
  partial:'Saisir un acompte', sh_partial:'Acompte · {0}', open_is:'en attente : {0}',
  t_partial:'{0} imputé · {1} restent en attente', t_partial_done:'{0} imputé · plus rien en attente',
@@ -1035,7 +1041,8 @@ ar:{
  team_empty_hint:'اضغط في الأسفل على «حلاق» وسجّل زملاءك، عندها ترى زبائنهم هنا.',
  have_backup:'لديّ نسخة احتياطية بالفعل',
  time_l:'الوقت', last7:'آخر 7 أيام', new_l:'جديد',
- b_expense:'مصروف', b_salary:'الأجر', my_day:'يومي', sal_entered:'الأجر المسجَّل',
+ b_expense:'مصروف', b_salary:'الأجر', b_payout:'دفع',
+ sh_payout_pick:'من يستلم المال؟', nothing_open_now:'لا شيء غير مدفوع', my_day:'يومي', sal_entered:'الأجر المسجَّل',
  of_which_paid:'منه مدفوع', still_open_l:'يبقى غير مدفوع', open_all_days:'غير المدفوع · كل الأيام',
  partial:'إدخال مبلغ جزئي', sh_partial:'دفعة جزئية · {0}', open_is:'غير مدفوع: {0}',
  t_partial:'تم احتساب {0} · يبقى {1} غير مدفوع', t_partial_done:'تم احتساب {0} · لم يبقَ شيء غير مدفوع',
@@ -2066,7 +2073,12 @@ function renderFab(){
     f.querySelector('[data-sal]').onclick = ()=> askClosed(ui.date, ()=> sheetSalary(wer, ui.date));
   } else if(ui.tab==='kasse'){
     const closed = !!S.closes[ui.date];
-    f.innerHTML = `<button class="btn ${closed?'ghost':'primary'} block" data-close2>${closed?tr('reopen_day'):tr('close_day')}</button>`;
+    const offenGes = sum(S.payouts.filter(p=> p.s==='open'), p=>p.a);
+    f.innerHTML = `<div class="duo">
+      <button class="btn" data-pay>${tr('b_payout')}${offenGes?` · ${eur0(offenGes)}`:''}</button>
+      <button class="btn ${closed?'ghost':'primary'}" data-close2>${closed?tr('reopen_day'):tr('close_day')}</button>
+    </div>`;
+    f.querySelector('[data-pay]').onclick = ()=> sheetPayout();
     f.querySelector('[data-close2]').onclick = ()=>{
       if(closed){ delete S.closes[ui.date]; save(); render(); toast(tr('t_day_open')); return; }
       confirmClose();
@@ -2224,6 +2236,24 @@ function sheetPartial(bId){
       toast(rest ? tr('t_partial', eur(gezahlt), eur(rest)) : tr('t_partial_done', eur(gezahlt)));
       if(rest) sheetOpenSalary(bId);
     };
+  }});
+}
+
+/* Aus der Kasse heraus auszahlen. Bei nur einem Betroffenen direkt weiter. */
+function sheetPayout(){
+  const offen = S.barbers
+    .map(b => ({ b, off: sum(S.payouts.filter(p=> p.b===b.id && p.s==='open'), p=>p.a) }))
+    .filter(x => x.off > 0)
+    .sort((a,b) => b.off - a.off);
+  if(!offen.length){ toast(tr('nothing_open_now')); buzz(10); return; }
+  if(offen.length === 1) return sheetOpenSalary(offen[0].b.id);
+  const body = `<section class="card" style="box-shadow:none"><div class="rows">${offen.map(x=>`
+    <button class="row" data-b="${x.b.id}">
+      <span class="main"><span class="t1">${esc(x.b.name)}${x.b.me?` <span class="pill me">${tr('me')}</span>`:''}</span></span>
+      <span class="pill open">${tr('x_open', eur(x.off))}</span>
+    </button>`).join('')}</div></section>`;
+  openSheet(tr('sh_payout_pick'), body, {onMount(root){
+    root.querySelectorAll('[data-b]').forEach(b=> b.onclick = ()=> sheetOpenSalary(b.dataset.b));
   }});
 }
 
