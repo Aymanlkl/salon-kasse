@@ -225,6 +225,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 }
 #fab .btn{pointer-events:auto;box-shadow:var(--shadow)}
 #fab .btn:not(.primary){background:var(--surface);border:1.5px solid var(--brass);color:var(--brass)}
+#fab .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#fab .trio .btn{pointer-events:auto;padding:14px 4px;font-size:13.5px;gap:5px;box-shadow:var(--shadow);
+  min-width:0;overflow:hidden;white-space:nowrap}
+#fab .trio .btn:not(.primary){background:var(--surface);border:1.5px solid var(--line-2);color:var(--ink)}
+#fab .trio svg{width:15px;height:15px;flex:none}
 
 /* tab bar */
 #tabbar{
@@ -782,6 +787,8 @@ de:{
  team_empty_hint:'Tippe unten auf „Friseur“ und trag deine Kollegen ein, dann siehst du hier ihre Kunden.',
  have_backup:'Ich habe schon eine Sicherungsdatei',
  time_l:'Zeit', last7:'Letzte 7 Tage', new_l:'neu',
+ b_expense:'Ausgabe', b_salary:'Gehalt', my_day:'Mein Tag', sal_entered:'Gehalt eingetragen',
+ of_which_paid:'davon ausgezahlt', still_open_l:'noch offen', open_all_days:'Offen gesamt · alle Tage',
  partial:'Teilbetrag eintragen', sh_partial:'Teilzahlung · {0}', open_is:'noch offen: {0}',
  t_partial:'{0} verrechnet · {1} bleiben offen', t_partial_done:'{0} verrechnet · nichts mehr offen',
  max_is_open:'Höchstens {0} – so viel ist offen', all_open:'alles'
@@ -904,6 +911,8 @@ fr:{
  team_empty_hint:'Appuie en bas sur « Coiffeur » et saisis tes collègues, tu verras ensuite leurs clients ici.',
  have_backup:'J’ai déjà un fichier de sauvegarde',
  time_l:'Heure', last7:'7 derniers jours', new_l:'nouveau',
+ b_expense:'Dépense', b_salary:'Salaire', my_day:'Ma journée', sal_entered:'Salaire saisi',
+ of_which_paid:'dont versé', still_open_l:'reste en attente', open_all_days:'En attente · tous les jours',
  partial:'Saisir un acompte', sh_partial:'Acompte · {0}', open_is:'en attente : {0}',
  t_partial:'{0} imputé · {1} restent en attente', t_partial_done:'{0} imputé · plus rien en attente',
  max_is_open:'{0} au maximum – c’est ce qui reste', all_open:'tout'
@@ -1026,6 +1035,8 @@ ar:{
  team_empty_hint:'اضغط في الأسفل على «حلاق» وسجّل زملاءك، عندها ترى زبائنهم هنا.',
  have_backup:'لديّ نسخة احتياطية بالفعل',
  time_l:'الوقت', last7:'آخر 7 أيام', new_l:'جديد',
+ b_expense:'مصروف', b_salary:'الأجر', my_day:'يومي', sal_entered:'الأجر المسجَّل',
+ of_which_paid:'منه مدفوع', still_open_l:'يبقى غير مدفوع', open_all_days:'غير المدفوع · كل الأيام',
  partial:'إدخال مبلغ جزئي', sh_partial:'دفعة جزئية · {0}', open_is:'غير مدفوع: {0}',
  t_partial:'تم احتساب {0} · يبقى {1} غير مدفوع', t_partial_done:'تم احتساب {0} · لم يبقَ شيء غير مدفوع',
  max_is_open:'{0} كحد أقصى – هذا ما تبقّى', all_open:'الكل'
@@ -1695,6 +1706,24 @@ function backupWarn(){
   </button>`;
 }
 
+/* Was habe ich gemacht, was steht mir zu, was habe ich bekommen, was fehlt noch. */
+function dayCard(bId){
+  const t   = totals(entriesOn(ui.date).filter(e=> e.b===bId));
+  const pay = S.payouts.filter(x=> x.d===ui.date && x.b===bId);
+  const ein = sum(pay, x=>x.a);
+  const bez = sum(pay.filter(x=>x.s==='paid'), x=>x.a);
+  const off = ein - bez;
+  const offAlle = sum(S.payouts.filter(x=> x.b===bId && x.s==='open'), x=>x.a);
+  return `<div class="sec-head"><span class="eyebrow">${tr('my_day')}</span></div>
+  <section class="card">
+    <div class="kv"><span class="k">${tr('revenue')}</span><span class="v">${eur(t.total)}</span></div>
+    <div class="kv"><span class="k">${tr('sal_entered')}</span><span class="v">${ein?eur(ein):'—'}</span></div>
+    <div class="kv"><span class="k">${tr('of_which_paid')}</span><span class="v" style="color:var(--pos)">${eur(bez)}</span></div>
+    <div class="kv total"><span class="k">${tr('still_open_l')}</span><span class="v"${off?' style="color:var(--open)"':''}>${eur(off)}</span></div>
+    ${offAlle ? `<div class="kv"><span class="k">${tr('open_all_days')}</span><span class="v" style="color:var(--open)">${eur(offAlle)}</span></div>` : ''}
+  </section>`;
+}
+
 function screenHeute(){
   const list = entriesOn(ui.date).filter(e=> e.b===me().id);
   const t = totals(list);
@@ -1703,7 +1732,8 @@ function screenHeute(){
     + kpiGrid(t, tVor)
     + weekChart(e=> e.b===me().id)
     + `<div class="sec-head"><span class="eyebrow">${tr('entries')}</span><span class="sec-act">${list.length}</span></div>`
-    + entryRows(list,false);
+    + entryRows(list,false)
+    + dayCard(me().id);
 }
 
 function screenTeam(){
@@ -1736,8 +1766,9 @@ function screenTeam(){
         <div class="track"><i style="width:${(x.tt.total/max*100).toFixed(1)}%"></i></div>
         <div class="l2"><span>${tr('line_barber', x.tt.count, eur(x.tt.bar), eur(x.tt.karte))}</span></div>
       </div>`).join('')}</section>`:''}
-    <div class="sec-head"><span class="eyebrow">${tr('entries')}</span><span class="eyebrow">${filtered.length}</span></div>
-    ${entryRows(filtered,true)}`;
+    <div class="sec-head"><span class="eyebrow">${tr('entries')}</span><span class="sec-act">${filtered.length}</span></div>
+    ${entryRows(filtered,true)}
+    ${ui.teamFilter!=='all' ? dayCard(ui.teamFilter) : ''}`;
 }
 
 function screenKasse(){
@@ -2022,13 +2053,17 @@ function renderFab(){
     f.innerHTML = `<button class="btn primary block" data-addb>${I.plus} ${tr('f_barber')}</button>`;
     f.querySelector('[data-addb]').onclick = ()=> sheetBarber(null);
   } else if(ui.tab==='heute' || ui.tab==='team'){
-    f.innerHTML = `<button class="btn primary block" data-add>${I.plus} ${tr('customer')}</button>`;
-    f.querySelector('[data-add]').onclick = ()=> askClosed(ui.date, ()=>{
-      if(ui.tab==='team'){
-        const def = ui.teamFilter!=='all' ? ui.teamFilter : (others()[0]||me()).id;
-        sheetEntry(null, def, true);
-      } else sheetEntry(null, me().id, false);
-    });
+    const wer = ui.tab==='team'
+      ? (ui.teamFilter!=='all' ? ui.teamFilter : (others()[0]||me()).id)
+      : me().id;
+    f.innerHTML = `<div class="trio">
+      <button class="btn primary" data-add>${I.plus} ${tr('customer')}</button>
+      <button class="btn" data-exp>${I.plus} ${tr('b_expense')}</button>
+      <button class="btn" data-sal>${I.plus} ${tr('b_salary')}</button>
+    </div>`;
+    f.querySelector('[data-add]').onclick = ()=> askClosed(ui.date, ()=> sheetEntry(null, wer, ui.tab==='team'));
+    f.querySelector('[data-exp]').onclick = ()=> askClosed(ui.date, ()=> sheetExpense(null));
+    f.querySelector('[data-sal]').onclick = ()=> askClosed(ui.date, ()=> sheetSalary(wer, ui.date));
   } else if(ui.tab==='kasse'){
     const closed = !!S.closes[ui.date];
     f.innerHTML = `<button class="btn ${closed?'ghost':'primary'} block" data-close2>${closed?tr('reopen_day'):tr('close_day')}</button>`;
