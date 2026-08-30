@@ -792,6 +792,8 @@ de:{
  have_backup:'Ich habe schon eine Sicherungsdatei',
  time_l:'Zeit', last7:'Letzte 7 Tage', new_l:'neu',
  b_expense:'Ausgabe', b_salary:'Gehalt', b_payout:'Auszahlen',
+ g_fix:'Zum Korrigieren', g_fix_sub:'die letzten Gehalt- und Ausgaben-Einträge · antippen zum Ändern',
+ g_fix_empty:'Noch nichts eingetragen', x_all_data:'Alle Daten',
  sh_payout_pick:'Wer bekommt Geld?', nothing_open_now:'Es ist nichts offen', my_day:'Mein Tag', sal_entered:'Gehalt eingetragen',
  of_which_paid:'davon ausgezahlt', still_open_l:'noch offen', open_all_days:'Offen gesamt · alle Tage',
  partial:'Teilbetrag eintragen', sh_partial:'Teilzahlung · {0}', open_is:'noch offen: {0}',
@@ -917,6 +919,8 @@ fr:{
  have_backup:'J’ai déjà un fichier de sauvegarde',
  time_l:'Heure', last7:'7 derniers jours', new_l:'nouveau',
  b_expense:'Dépense', b_salary:'Salaire', b_payout:'Verser',
+ g_fix:'À corriger', g_fix_sub:'les dernières écritures de salaire et de dépense · appuyer pour modifier',
+ g_fix_empty:'Rien de saisi', x_all_data:'Toutes les données',
  sh_payout_pick:'Qui reçoit de l’argent ?', nothing_open_now:'Rien en attente', my_day:'Ma journée', sal_entered:'Salaire saisi',
  of_which_paid:'dont versé', still_open_l:'reste en attente', open_all_days:'En attente · tous les jours',
  partial:'Saisir un acompte', sh_partial:'Acompte · {0}', open_is:'en attente : {0}',
@@ -1042,6 +1046,8 @@ ar:{
  have_backup:'لديّ نسخة احتياطية بالفعل',
  time_l:'الوقت', last7:'آخر 7 أيام', new_l:'جديد',
  b_expense:'مصروف', b_salary:'الأجر', b_payout:'دفع',
+ g_fix:'للتصحيح', g_fix_sub:'آخر سجلات الأجور والمصاريف · اضغط للتعديل',
+ g_fix_empty:'لم يُسجَّل شيء بعد', x_all_data:'كل البيانات',
  sh_payout_pick:'من يستلم المال؟', nothing_open_now:'لا شيء غير مدفوع', my_day:'يومي', sal_entered:'الأجر المسجَّل',
  of_which_paid:'منه مدفوع', still_open_l:'يبقى غير مدفوع', open_all_days:'غير المدفوع · كل الأيام',
  partial:'إدخال مبلغ جزئي', sh_partial:'دفعة جزئية · {0}', open_is:'غير مدفوع: {0}',
@@ -1928,13 +1934,13 @@ function doBackup(){
 }
 
 function screenMehr(){
-  const bal = S.barbers.map(b=>{
-    const op = sum(S.payouts.filter(p=>p.b===b.id&&p.s==='open'),p=>p.a);
-    const pd = sum(S.payouts.filter(p=>p.b===b.id&&p.s==='paid'),p=>p.a);
-    return {b,op,pd};
-  });
-  const recent = S.payouts.slice().sort((a,b)=> b.d.localeCompare(a.d)).slice(0,14);
-  const recentExp = S.expenses.slice().sort((a,b)=> b.d.localeCompare(a.d)).slice(0,10);
+  /* Je Art die letzten sechs, dann gemeinsam nach Datum. Sonst verdrängen die
+     zahlreichen Gehalt-Einträge die selteneren Ausgaben aus der Liste. */
+  const letzte = (arr) => arr.slice().sort((a,b)=> b.d.localeCompare(a.d)).slice(0,6);
+  const verlauf = [
+    ...letzte(S.payouts).map(o=>({typ:'gehalt', o})),
+    ...letzte(S.expenses).map(o=>({typ:'ausgabe', o}))
+  ].sort((a,b)=> b.o.d.localeCompare(a.o.d));
   const bDays = daysSince(S.settings.lastBackup);
 
   return `
@@ -1961,28 +1967,21 @@ function screenMehr(){
         <span class="amt money" style="font-size:13.5px;color:var(--ink-3)">${tr('edit')}</span>
       </button>`).join('')}</div></section>
 
-    <div class="sec-head"><span class="eyebrow">${tr('sal_balance')}</span></div>
-    <section class="card">${bal.map(x=>`
-      <div class="kv"><span class="k">${esc(x.b.name)}</span>
-      <span class="v">${x.op?`<button class="pill open" data-openb="${x.b.id}">${tr('x_open', eur(x.op))}</button>`:`<span class="pill paid">${tr('all_paid')}</span>`}</span></div>
-    `).join('')}</section>
-
-    <div class="sec-head"><span class="eyebrow">${tr('last_payouts')}</span><button class="sec-act" data-addpay>${tr('add_payout')}</button></div>
-    <section class="card"><div class="rows">${recent.length? recent.map(p=>`
-      <button class="row" data-pay="${p.id}">
-        <span class="lead">${dateShort(p.d).slice(3)}</span>
-        <span class="main"><span class="t1">${esc(bname(p.b))}</span><span class="t2">${p.src==='manual'?tr('src_manual'):tr('src_close')}</span></span>
-        <span class="pill ${p.s==='paid'?'paid':'open'}">${p.s==='paid'?tr('paid'):tr('open')}</span>
-        <span class="amt money">${eur(p.a)}</span>
-      </button>`).join('') : `<div class="empty"><div class="sm">${tr('no_payouts')}</div></div>`}</div></section>
-
-    <div class="sec-head"><span class="eyebrow">${tr('last_expenses')}</span></div>
-    <section class="card"><div class="rows">${recentExp.length? recentExp.map(x=>`
-      <button class="row" data-exp="${x.id}">
-        <span class="lead">${dateShort(x.d).slice(3)}</span>
-        <span class="main"><span class="t1">${esc(catLabel(x.c))}</span>${x.n?`<span class="t2">${esc(x.n)}</span>`:''}</span>
-        <span class="amt money" style="color:var(--open)">− ${eur(x.a)}</span>
-      </button>`).join('') : `<div class="empty"><div class="sm">${tr('no_expenses')}</div></div>`}</div></section>
+    <div class="sec-head"><span class="eyebrow">${tr('g_fix')}</span></div>
+    <p class="hintline" style="margin:2px 4px 0">${tr('g_fix_sub')}</p>
+    <section class="card"><div class="rows">${verlauf.length? verlauf.map(x=> x.typ==='gehalt' ? `
+      <button class="row" data-pay="${x.o.id}">
+        <span class="lead">${dateShort(x.o.d).slice(3)}</span>
+        <span class="main"><span class="t1">${esc(bname(x.o.b))}</span><span class="t2">${tr('b_salary')} · ${x.o.s==='paid'?tr('paid'):tr('open')}</span></span>
+        <span class="dotpill karte"><i></i>${tr('b_salary')}</span>
+        <span class="amt money">${eur(x.o.a)}</span>
+      </button>` : `
+      <button class="row" data-exp="${x.o.id}">
+        <span class="lead">${dateShort(x.o.d).slice(3)}</span>
+        <span class="main"><span class="t1">${esc(catLabel(x.o.c))}</span>${x.o.n?`<span class="t2">${esc(x.o.n)}</span>`:''}</span>
+        <span class="dotpill bar"><i></i>${tr('b_expense')}</span>
+        <span class="amt money" style="color:var(--open)">− ${eur(x.o.a)}</span>
+      </button>`).join('') : `<div class="empty"><div class="sm">${tr('g_fix_empty')}</div></div>`}</div></section>
 
     <div class="sec-head"><span class="eyebrow">${tr('storage')}</span></div>
     <section class="card">
@@ -2000,9 +1999,7 @@ function screenMehr(){
       <button class="row" data-snaps><span class="main"><span class="t1">${tr('snapshots')}</span><span class="t2">${tr('snapshots_sub', storageInfo.snaps)}</span></span></button>
     </div></section>
 
-    <div class="sec-head"><span class="eyebrow">${tr('data')}</span></div>
     <section class="card"><div class="rows">
-      <button class="row" data-export><span class="main"><span class="t1">${tr('export_report')}</span><span class="t2">${tr('export_sub')}</span></span></button>
       <button class="row" data-backup><span class="main"><span class="t1">${tr('backup_save')}</span><span class="t2">${tr('backup_save_sub')}</span></span></button>
       <button class="row" data-restore><span class="main"><span class="t1">${tr('backup_restore')}</span><span class="t2">${tr('backup_restore_sub')}</span></span></button>
       ${S.entries.length ? '' : `<button class="row" data-demo><span class="main"><span class="t1">${tr('load_demo')}</span><span class="t2">${tr('load_demo_sub')}</span></span></button>`}
@@ -2808,8 +2805,12 @@ function exportPDF(range, detailed){
 }
 
 function sheetExport(range, label){
+  let ber = range;
   const body = `
-    <p class="hintline" style="margin:-4px 0 16px">${tr('period_l')} <strong>${esc(label)}</strong></p>
+    <div class="bchips" style="margin:-2px 0 16px">
+      <button class="bchip" data-r="p" aria-pressed="true">${esc(label)}</button>
+      <button class="bchip" data-r="a" aria-pressed="false">${tr('x_all_data')}</button>
+    </div>
     <button class="btn primary block" data-pdf>${tr('pdf_report')}</button>
     <p class="hintline" style="margin:7px 2px 14px">${tr('pdf_report_sub')}</p>
     <button class="btn block" data-pdfall>${tr('pdf_all')}</button>
@@ -2817,9 +2818,14 @@ function sheetExport(range, label){
     <button class="btn block" data-csv2>${tr('csv_excel')}</button>
     ${EMBEDDED ? `<p class="hintline" style="margin:14px 0 0;text-align:center">${tr('embed_note')}</p>` : ''}`;
   openSheet(tr('sh_export'), body, {onMount(root){
-    root.querySelector('[data-pdf]').onclick    = ()=>{ closeSheet(); exportPDF(range, false); };
-    root.querySelector('[data-pdfall]').onclick = ()=>{ closeSheet(); exportPDF(range, true); };
-    root.querySelector('[data-csv2]').onclick   = ()=>{ closeSheet(); exportCSV(range); };
+    root.querySelectorAll('[data-r]').forEach(b=> b.onclick = ()=>{
+      ber = b.dataset.r==='a' ? null : range;
+      root.querySelectorAll('[data-r]').forEach(x=> x.setAttribute('aria-pressed', x===b));
+      buzz();
+    });
+    root.querySelector('[data-pdf]').onclick    = ()=>{ closeSheet(); exportPDF(ber, false); };
+    root.querySelector('[data-pdfall]').onclick = ()=>{ closeSheet(); exportPDF(ber, true); };
+    root.querySelector('[data-csv2]').onclick   = ()=>{ closeSheet(); exportCSV(ber); };
   }});
 }
 
