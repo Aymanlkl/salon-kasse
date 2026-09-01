@@ -2465,7 +2465,8 @@ function winAnsi(s){
     const c = ch.charCodeAt(0);
     if(WIN_MAP[ch] !== undefined) out += String.fromCharCode(WIN_MAP[ch]);
     else if(ch.length === 1 && c <= 255) out += ch;
-    else out += '?';
+    /* Zeichen, die die PDF-Schrift nicht kennt (Emoji, arabische Schrift),
+       werden weggelassen statt durch ein Fragezeichen ersetzt. */
   }
   return out;
 }
@@ -2542,6 +2543,13 @@ function PDF(){
 }
 
 /* ---------- der eigentliche Bericht ---------- */
+/* Name fürs PDF: erst die nicht darstellbaren Zeichen entfernen, dann trimmen.
+   Bleibt nichts übrig, springt der Standardname ein. */
+function salonName(){
+  const n = winAnsi(S.settings.shop || '').replace(/\s+/g, ' ').trim();
+  return n || 'Salon Kasse';
+}
+
 function buildReport(range, label, detailed){
   const r   = range || ['0000-01-01','9999-12-31'];
   const ent = S.entries.filter(e=>inRange(e.d,r)).sort((a,b)=> a.d.localeCompare(b.d) || a.t.localeCompare(b.t));
@@ -2561,13 +2569,13 @@ function buildReport(range, label, detailed){
 
   function footer(){
     doc.line(M, PDF_H-48, R, PDF_H-48);
-    doc.text(M, PDF_H-36, (S.settings.shop || 'Salon Kasse') + ' – Kassenbericht', {size:8, color:LIGHT});
+    doc.text(M, PDF_H-36, salonName() + ' – Kassenbericht', {size:8, color:LIGHT});
     doc.text(R, PDF_H-36, 'Seite ' + page, {size:8, align:'right', color:LIGHT});
   }
   function header(){
     if(page) footer();
     page++; doc.page(); y = M + 4;
-    doc.text(M, y, S.settings.shop || 'Salon Kasse', {size:17, bold:true});
+    doc.text(M, y, salonName(), {size:17, bold:true});
     doc.text(R, y, 'KASSENBERICHT', {size:9, bold:true, align:'right', color:BRASS});
     y += 15;
     doc.text(M, y, label, {size:10.5, color:MUTED});
@@ -2617,14 +2625,15 @@ function buildReport(range, label, detailed){
   doc.rect(M-8, y-16, R-M+16, 66, {fill:[0.945,0.955,0.945]});
   doc.text(M, y, 'UMSATZ GESAMT', {size:8, bold:true, color:MUTED});
   doc.text(M, y+26, eur(T.total), {size:22, bold:true});
-  const stat = (x, k, v, sub)=>{
-    doc.text(x, y, k, {size:8, bold:true, color:MUTED});
-    doc.text(x, y+18, v, {size:12, bold:true});
-    if(sub) doc.text(x, y+32, sub, {size:8, color:LIGHT});
+  const stat = (x, k, v, sub, align)=>{
+    doc.text(x, y, k, {size:8, bold:true, color:MUTED, align});
+    doc.text(x, y+18, v, {size:12, bold:true, align});
+    if(sub) doc.text(x, y+32, sub, {size:8, color:LIGHT, align});
   };
-  stat(M+250, 'BAR',    eur(T.bar),   T.total ? Math.round(T.bar/T.total*100) + ' %' : '');
-  stat(M+360, 'KARTE',  eur(T.karte), T.total ? Math.round(T.karte/T.total*100) + ' %' : '');
-  stat(M+462, 'KUNDEN', String(T.count), T.count ? 'im Schnitt ' + eur(Math.round(T.total/T.count)) : '');
+  stat(M+236, 'BAR',    eur(T.bar),   T.total ? Math.round(T.bar/T.total*100) + ' %' : '');
+  stat(M+346, 'KARTE',  eur(T.karte), T.total ? Math.round(T.karte/T.total*100) + ' %' : '');
+  /* rechtsbündig am Seitenrand, sonst läuft "im Schnitt …" aus dem Blatt */
+  stat(R, 'KUNDEN', String(T.count), T.count ? 'im Schnitt ' + eur(Math.round(T.total/T.count)) : '', 'right');
   y += 66;
 
   if(!ent.length && !exp.length && !pay.length){
@@ -2698,7 +2707,10 @@ function buildReport(range, label, detailed){
   row([['Gehalt ausgezahlt', M], ['– ' + eur(paidSum), R, 'right']]);
   row([['Verbleibt', M, null, true], [eur(T.total - expSum - paidSum), R, 'right', true]],
       {fill:[0.945,0.955,0.945], h:19, size:10.5});
-  if(openSum) noteOpen('Noch nicht ausgezahltes Gehalt in diesem Zeitraum', openSum, false);
+  /* Bei "Alle Daten" waere diese Zeile identisch mit der Summe im Gehaltsblock. */
+  const art = periodKindDE(range);
+  if(openSum && art !== 'alle')
+    noteOpen('Noch nicht ausgezahltes Gehalt ' + PERIOD_DE[art], openSum, false);
   y += 12;
 
   /* Tagesübersicht */
@@ -2737,6 +2749,24 @@ function buildReport(range, label, detailed){
   footer();
   return doc.build('Kassenbericht ' + label);
 }
+
+/* Welche Art von Zeitraum ist das? Wird für die Formulierung im PDF gebraucht. */
+function periodKindDE(range){
+  if(!range) return 'alle';
+  if(range[0] === range[1]) return 'tag';
+  const a = fromISO(range[0]), b = fromISO(range[1]);
+  const letzterImMonat = new Date(b.getFullYear(), b.getMonth()+1, 0).getDate();
+  if(a.getDate()===1 && a.getMonth()===b.getMonth() && a.getFullYear()===b.getFullYear() && b.getDate()===letzterImMonat)
+    return 'monat';
+  if(a.getMonth()===0 && a.getDate()===1 && b.getMonth()===11 && b.getDate()===31 && a.getFullYear()===b.getFullYear())
+    return 'jahr';
+  if(Math.round((b - a) / 86400000) + 1 === 7) return 'woche';
+  return 'zeitraum';
+}
+const PERIOD_DE = {
+  tag:'an diesem Tag', woche:'in dieser Woche', monat:'in diesem Monat',
+  jahr:'in diesem Jahr', zeitraum:'in diesem Zeitraum'
+};
 
 function rangeLabelDE(range){
   return inGerman(()=>{
