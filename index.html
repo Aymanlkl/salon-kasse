@@ -2554,6 +2554,7 @@ function buildReport(range, label, detailed){
 
   const M = 46, R = PDF_W - M;
   const BRASS = [0.54,0.38,0.09], MUTED = [0.44,0.49,0.47], LIGHT = [0.62,0.66,0.64];
+  const RED = [0.70,0.16,0.11], RED_BG = [0.98,0.91,0.89];
   const doc = PDF();
   let y = 0, page = 0;
   let cont = null;   // Tabellenkopf, der auf Folgeseiten wiederholt wird
@@ -2600,6 +2601,15 @@ function buildReport(range, label, detailed){
   function table(t, c){ h2(t); cont = {t, c}; drawRow(c, {bold:true, size:8.5, color:MUTED}); }
   function endTable(){ cont = null; }
   function note(t){ need(16); doc.text(M, y, t, {size:9.5, color:MUTED}); y += 16; }
+  /* Offener Betrag: soll auffallen, ohne die Summenzeilen zu übertönen. */
+  function noteOpen(label, cents, gross){
+    const h = gross ? 26 : 20, sz = gross ? 12.5 : 10.5;
+    need(h + 6);
+    doc.rect(M-8, y-(gross?13:10), R-M+16, h, {fill:RED_BG});
+    doc.text(M, y, label, {size:sz, bold:true, color:RED});
+    doc.text(R, y, eur(cents), {size:sz, bold:true, align:'right', color:RED});
+    y += h + 4;
+  }
 
   header();
 
@@ -2664,7 +2674,7 @@ function buildReport(range, label, detailed){
         {fill:[0.945,0.955,0.945], h:18});
     endTable();
     const offenAlle = sum(S.payouts.filter(p=>p.s==='open'), p=>p.a);
-    if(offenAlle) note('Offen über alle Zeiträume hinweg: ' + eur(offenAlle));
+    if(offenAlle) noteOpen('Offen über alle Zeiträume hinweg', offenAlle, true);
     y += 10;
   }
 
@@ -2688,7 +2698,7 @@ function buildReport(range, label, detailed){
   row([['Gehalt ausgezahlt', M], ['– ' + eur(paidSum), R, 'right']]);
   row([['Verbleibt', M, null, true], [eur(T.total - expSum - paidSum), R, 'right', true]],
       {fill:[0.945,0.955,0.945], h:19, size:10.5});
-  if(openSum) note('Noch nicht ausgezahltes Gehalt in diesem Zeitraum: ' + eur(openSum));
+  if(openSum) noteOpen('Noch nicht ausgezahltes Gehalt in diesem Zeitraum', openSum, false);
   y += 12;
 
   /* Tagesübersicht */
