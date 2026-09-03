@@ -788,6 +788,7 @@ de:{
  have_backup:'Ich habe schon eine Sicherungsdatei',
  time_l:'Zeit', last7:'Letzte 7 Tage', new_l:'neu',
  b_expense:'Ausgabe', b_salary:'Gehalt', b_payout:'Auszahlen',
+ deleted_barber:'Gelöschter Friseur',
  g_fix:'Zum Korrigieren', g_fix_sub:'die letzten Gehalt- und Ausgaben-Einträge · antippen zum Ändern',
  g_fix_empty:'Noch nichts eingetragen', x_all_data:'Alle Daten',
  sh_payout_pick:'Wer bekommt Geld?', nothing_open_now:'Es ist nichts offen', my_day:'Mein Tag', sal_entered:'Gehalt eingetragen',
@@ -911,6 +912,7 @@ fr:{
  have_backup:'J’ai déjà un fichier de sauvegarde',
  time_l:'Heure', last7:'7 derniers jours', new_l:'nouveau',
  b_expense:'Dépense', b_salary:'Salaire', b_payout:'Verser',
+ deleted_barber:'Coiffeur supprimé',
  g_fix:'À corriger', g_fix_sub:'les dernières écritures de salaire et de dépense · appuyer pour modifier',
  g_fix_empty:'Rien de saisi', x_all_data:'Toutes les données',
  sh_payout_pick:'Qui reçoit de l’argent ?', nothing_open_now:'Rien en attente', my_day:'Ma journée', sal_entered:'Salaire saisi',
@@ -1034,6 +1036,7 @@ ar:{
  have_backup:'لديّ نسخة احتياطية بالفعل',
  time_l:'الوقت', last7:'آخر 7 أيام', new_l:'جديد',
  b_expense:'مصروف', b_salary:'الأجر', b_payout:'دفع',
+ deleted_barber:'حلاق محذوف',
  g_fix:'للتصحيح', g_fix_sub:'آخر سجلات الأجور والمصاريف · اضغط للتعديل',
  g_fix_empty:'لم يُسجَّل شيء بعد', x_all_data:'كل البيانات',
  sh_payout_pick:'من يستلم المال؟', nothing_open_now:'لا شيء غير مدفوع', my_day:'يومي', sal_entered:'الأجر المسجَّل',
@@ -1180,7 +1183,14 @@ function seedDemo(st){
 const me = () => S.barbers.find(b=>b.me) || S.barbers[0];
 const others = () => S.barbers.filter(b=>!b.me);
 const barber = id => S.barbers.find(b=>b.id===id);
-const bname = id => (barber(id)||{name:'—'}).name;
+const bname = id => { const b = barber(id); return b ? b.name : tr('deleted_barber'); };
+/* Auch Friseure beruecksichtigen, die es nicht mehr gibt, deren Umsaetze aber
+   noch in den Daten stehen - sonst passt die Aufschluesselung nicht zur Summe. */
+function barbersOf(list){
+  const ids = S.barbers.map(b=>b.id);
+  list.forEach(e=>{ if(ids.indexOf(e.b) < 0) ids.push(e.b); });
+  return ids.map(id=>{ const b = barber(id); return b || {id, name:bname(id), me:false, weg:true}; });
+}
 
 const entriesOn = d => S.entries.filter(e=>e.d===d).sort((a,b)=> b.t.localeCompare(a.t));
 const sum = (arr,f) => arr.reduce((s,x)=>s+f(x),0);
@@ -1581,9 +1591,9 @@ function kTile(cls, ico, lab, val, d, sub){
     ${sub ? `<span class="k-sub">${sub}</span>` : ''}
   </div>`;
 }
-function kpiGrid(t, tVor){
+function kpiGrid(t, tVor, ganzerSalon){
   return `<section class="kpi">
-    ${kTile('mint', IK.euro,  tr('revenue'), eur(t.total), delta(t.total, tVor.total))}
+    ${kTile('mint', IK.euro, ganzerSalon ? tr('total_revenue') : tr('revenue'), eur(t.total), delta(t.total, tVor.total))}
     ${kTile('lila', IK.users, tr('cust_n'), String(t.count), delta(t.count, tVor.count),
             t.count ? 'ø ' + eur(Math.round(t.total/t.count)) : '')}
     ${kTile('gold', IK.cash,  tr('bar'), eur(t.bar), null, t.total?Math.round(t.bar/t.total*100)+' %':'0 %')}
@@ -1748,7 +1758,7 @@ function screenTeam(){
   const imTeam = e => ui.teamFilter==='all' ? e.b!==me().id : e.b===ui.teamFilter;
   const filtered = ui.teamFilter==='all' ? all : all.filter(e=>e.b===ui.teamFilter);
   const t = totals(filtered);
-  const perB = others().map(b=>{
+  const perB = barbersOf(all).filter(b=> b.id!==me().id).map(b=>{
     const tt = totals(all.filter(e=>e.b===b.id));
     return {b, tt};
   });
@@ -1782,7 +1792,7 @@ function screenKasse(){
   const paidToday = sum(S.payouts.filter(p=>p.d===d && p.s==='paid'), p=>p.a);
   const closed = !!S.closes[d];
 
-  const perB = S.barbers.map(b=>({b, t: totals(dayEntries.filter(e=>e.b===b.id))}))
+  const perB = barbersOf(dayEntries).map(b=>({b, t: totals(dayEntries.filter(e=>e.b===b.id))}))
                         .filter(x=> x.t.count>0 || x.b.me);
 
   const payRows = S.barbers.map(b=>{
@@ -1802,7 +1812,7 @@ function screenKasse(){
   }).join('');
 
   return `
-    ${kpiGrid(tAll, totals(S.entries.filter(e=> e.d===addDays(d,-7))))}
+    ${kpiGrid(tAll, totals(S.entries.filter(e=> e.d===addDays(d,-7))), true)}
     ${ringCard(tAll)}
 
     <div class="sec-head"><span class="eyebrow">${tr('rev_by_barber')}</span></div>
@@ -1862,7 +1872,7 @@ function screenBericht(){
   const laenge = (fromISO(r[1]) - fromISO(r[0]))/86400000 + 1;
   const tVor = totals(S.entries.filter(e=> inRange(e.d, [addDays(r[0], -laenge), addDays(r[0], -1)])));
 
-  const perB = S.barbers.map(b=>({b, t: totals(ent.filter(e=>e.b===b.id))}))
+  const perB = barbersOf(ent).map(b=>({b, t: totals(ent.filter(e=>e.b===b.id))}))
     .filter(x=>x.t.count>0).sort((a,b)=>b.t.total-a.t.total);
   const max = Math.max(1, ...perB.map(x=>x.t.total));
 
@@ -1888,7 +1898,7 @@ function screenBericht(){
       ${['tag','woche','monat','jahr'].map(k=>`<button data-r="${k}" aria-pressed="${ui.range===k}">${tr({tag:'r_day',woche:'r_week',monat:'r_month',jahr:'r_year'}[k])}</button>`).join('')}
     </div>
 
-    ${kpiGrid(t, tVor)}
+    ${kpiGrid(t, tVor, true)}
     ${ringCard(t)}
     <section class="card">
       <div class="kv"><span class="k">${tr('expenses_n', exp.length)}</span><span class="v" style="color:var(--open)">− ${eur(expSum)}</span></div>
@@ -2034,7 +2044,12 @@ function renderTabs(){
       ${t.i}<span class="lbl">${tr(t.l)}</span>
     </button>`).join('');
   tb.querySelectorAll('[data-tab]').forEach(b=> b.onclick = ()=>{
-    ui.tab = b.dataset.tab; buzz(6); render();
+    const vor = ui.tab;
+    ui.tab = b.dataset.tab;
+    /* Der gewaehlte Tag soll beim Tabwechsel nicht springen. */
+    if(ui.tab==='bericht') ui.anchor = ui.date;
+    else if(vor==='bericht' && ui.range==='tag') ui.date = ui.anchor;
+    buzz(6); render();
     if(ui.tab==='mehr') refreshStorageInfo();
   });
 }
@@ -2643,7 +2658,7 @@ function buildReport(range, label, detailed){
   }
 
   /* Umsatz nach Friseur */
-  const perB = S.barbers.map(b=>({b, t: totals(ent.filter(e=>e.b===b.id))}))
+  const perB = barbersOf(ent).map(b=>({b, t: totals(ent.filter(e=>e.b===b.id))}))
                         .filter(x=>x.t.count>0)
                         .sort((a,b)=> b.t.total - a.t.total);
   if(perB.length){
@@ -2663,7 +2678,7 @@ function buildReport(range, label, detailed){
   }
 
   /* Gehalt */
-  const perP = S.barbers.map(b=>{
+  const perP = barbersOf(pay.map(p=>({b:p.b}))).map(b=>{
     const mine = pay.filter(p=>p.b===b.id);
     return { b,
       paid: sum(mine.filter(p=>p.s==='paid'), p=>p.a),
