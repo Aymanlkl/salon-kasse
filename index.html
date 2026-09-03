@@ -508,7 +508,7 @@ function defaultState(){
   return {
     v:1,
     settings:{ shop:'', onboarded:false },
-    barbers:[ {id:'b1', name:'Ich', me:true} ],
+    barbers:[ {id:'b1', name:'Ich', me:true, start:0} ],
     entries:[],   // {id,d,t,b,a,p,n}
     expenses:[],  // {id,d,a,c,n}
     payouts:[],   // {id,d,b,a,s,src}
@@ -521,9 +521,33 @@ try{
   S = raw ? JSON.parse(raw) : null;
 }catch(e){ S = null; }
 
-// Daten aus einer älteren Version: als eingerichtet behandeln
-if(S && S.settings && S.settings.onboarded === undefined)
-  S.settings.onboarded = Array.isArray(S.entries) && S.entries.length > 0;
+/* Aeltere Daten auf das aktuelle Modell heben. Wird auch beim Wiederherstellen
+   eines Backups oder eines Standes aufgerufen. */
+function migrate(st){
+  if(!st) return st;
+  if(st.settings && st.settings.onboarded === undefined)
+    st.settings.onboarded = Array.isArray(st.entries) && st.entries.length > 0;
+  (st.barbers||[]).forEach(b=>{ if(typeof b.start !== 'number') b.start = 0; });
+  /* Frueher: ein Betrag pro Tag mit Haken "ausgezahlt/offen".
+     Jetzt: zwei Zahlen - verdient (a) und ausgezahlt (pd).
+     Ein als ausgezahlt markierter Tag heisst: an dem Tag verdient und auch bekommen. */
+  (st.payouts||[]).forEach(p=>{
+    if(typeof p.pd !== 'number'){ p.pd = (p.s === 'paid') ? p.a : 0; }
+    delete p.s;
+  });
+  /* Frueher konnten mehrere Eintraege auf denselben Tag fallen - etwa wenn eine
+     Auszahlung einen Tag aufgeteilt hat. Pro Friseur und Tag gibt es jetzt genau
+     einen Eintrag, sonst erwischt der Dialog nur einen davon. */
+  const nach = [];
+  (st.payouts||[]).forEach(p=>{
+    const vorh = nach.find(x=> x.d===p.d && x.b===p.b);
+    if(vorh){ vorh.a += p.a; vorh.pd += p.pd; }
+    else nach.push(p);
+  });
+  st.payouts = nach;
+  return st;
+}
+migrate(S);
 
 /* ============================================================
    Dauerhafte Speicherung
@@ -592,7 +616,7 @@ function recoverFromIDB(){
   if((S.entries||[]).length > 0) return;
   idbGet('state').then(data=>{
     if(!data || !Array.isArray(data.entries) || !data.entries.length) return;
-    S = data;
+    S = migrate(data);
     try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
     render();
     toast(tr('t_recovered'));
@@ -644,7 +668,7 @@ function sheetSnapshots(){
           <button class="btn ghost block" data-no style="margin-top:10px">${tr('cancel')}</button>`,
           {onMount(r2){
             r2.querySelector('[data-yes]').onclick = ()=>{
-              S = snap.s; save(); closeSheet(); render(); toast(tr('t_snap_restored'));
+              S = migrate(snap.s); save(); closeSheet(); render(); toast(tr('t_snap_restored'));
             };
             r2.querySelector('[data-no]').onclick = ()=> closeSheet();
           }});
@@ -789,6 +813,13 @@ de:{
  time_l:'Zeit', last7:'Letzte 7 Tage', new_l:'neu',
  b_expense:'Ausgabe', b_salary:'Gehalt', b_payout:'Auszahlen',
  deleted_barber:'Gelöschter Friseur',
+ earned:'Verdient', paid_out_l:'Ausgezahlt', open_l:'Offen',
+ start_open:'Offen zu Beginn', start_open_hint:'Was diesem Friseur schon geschuldet wurde, bevor du die App benutzt hast. Bleibt 0, wenn ihr bei null angefangen habt.',
+ sh_withdraw:'Auszahlen · {0}', t_withdrawn:'{0} ausgezahlt · {1} bleiben offen',
+ t_withdrawn_all:'{0} ausgezahlt · nichts mehr offen',
+ sal_line:'verdient {0} · ausgezahlt {1}', nothing_entered:'nichts eingetragen',
+ del_salary:'Gehalt-Eintrag löschen',
+ withdraw_day:'Wird auf den {0} gebucht', open_total_now:'Offen gesamt',
  g_fix:'Zum Korrigieren', g_fix_sub:'die letzten Gehalt- und Ausgaben-Einträge · antippen zum Ändern',
  g_fix_empty:'Noch nichts eingetragen', x_all_data:'Alle Daten',
  sh_payout_pick:'Wer bekommt Geld?', nothing_open_now:'Es ist nichts offen', my_day:'Mein Tag', sal_entered:'Gehalt eingetragen',
@@ -913,6 +944,13 @@ fr:{
  time_l:'Heure', last7:'7 derniers jours', new_l:'nouveau',
  b_expense:'Dépense', b_salary:'Salaire', b_payout:'Verser',
  deleted_barber:'Coiffeur supprimé',
+ earned:'Gagné', paid_out_l:'Versé', open_l:'En attente',
+ start_open:'En attente au départ', start_open_hint:'Ce qui était déjà dû à ce coiffeur avant que tu utilises l’application. Laisse 0 si vous avez commencé à zéro.',
+ sh_withdraw:'Verser · {0}', t_withdrawn:'{0} versé · {1} restent en attente',
+ t_withdrawn_all:'{0} versé · plus rien en attente',
+ sal_line:'gagné {0} · versé {1}', nothing_entered:'rien de saisi',
+ del_salary:'Supprimer ce salaire',
+ withdraw_day:'Sera enregistré au {0}', open_total_now:'En attente au total',
  g_fix:'À corriger', g_fix_sub:'les dernières écritures de salaire et de dépense · appuyer pour modifier',
  g_fix_empty:'Rien de saisi', x_all_data:'Toutes les données',
  sh_payout_pick:'Qui reçoit de l’argent ?', nothing_open_now:'Rien en attente', my_day:'Ma journée', sal_entered:'Salaire saisi',
@@ -1037,6 +1075,13 @@ ar:{
  time_l:'الوقت', last7:'آخر 7 أيام', new_l:'جديد',
  b_expense:'مصروف', b_salary:'الأجر', b_payout:'دفع',
  deleted_barber:'حلاق محذوف',
+ earned:'المكتسب', paid_out_l:'المدفوع', open_l:'غير مدفوع',
+ start_open:'غير مدفوع في البداية', start_open_hint:'ما كان مستحقاً لهذا الحلاق قبل استخدام التطبيق. اتركه صفراً إذا بدأتم من الصفر.',
+ sh_withdraw:'دفع · {0}', t_withdrawn:'تم دفع {0} · يبقى {1} غير مدفوع',
+ t_withdrawn_all:'تم دفع {0} · لم يبقَ شيء',
+ sal_line:'المكتسب {0} · المدفوع {1}', nothing_entered:'لم يُسجَّل شيء',
+ del_salary:'حذف سجل الأجر',
+ withdraw_day:'يُسجَّل على يوم {0}', open_total_now:'غير المدفوع إجمالاً',
  g_fix:'للتصحيح', g_fix_sub:'آخر سجلات الأجور والمصاريف · اضغط للتعديل',
  g_fix_empty:'لم يُسجَّل شيء بعد', x_all_data:'كل البيانات',
  sh_payout_pick:'من يستلم المال؟', nothing_open_now:'لا شيء غير مدفوع', my_day:'يومي', sal_entered:'الأجر المسجَّل',
@@ -1170,7 +1215,8 @@ function seedDemo(st){
         const rev = st.entries.filter(e=>e.d===d && e.b===b.id).reduce((s,e)=>s+e.a,0);
         if(!rev) return;
         const amt = Math.round(rev*(bi===0?0.42:0.45)/500)*500;
-        st.payouts.push({id:uid(), d, b:b.id, a:amt, s: (k>6 ? 'paid' : (rnd()<0.55?'paid':'open')), src:'close'});
+        const bezahlt = (k>6 || rnd()<0.55) ? amt : Math.round(amt*rnd()/500)*500;
+        st.payouts.push({id:uid(), d, b:b.id, a:amt, pd:bezahlt, src:'close'});
       });
     }
   }
@@ -1200,6 +1246,26 @@ function pctPair(t){
   if(!t.total) return {bar:0, karte:0};
   const bar = Math.round(t.bar / t.total * 100);
   return {bar, karte: 100 - bar};
+}
+
+/* Gehalt eines Friseurs: verdient, ausgezahlt, offen.
+   Offen ist immer ein laufender Saldo, kein Wert pro Tag. */
+function salOf(bId, range){
+  const ps = S.payouts.filter(p=> p.b===bId && (!range || inRange(p.d, range)));
+  return { verdient: sum(ps,p=>p.a), ausgezahlt: sum(ps,p=>p.pd) };
+}
+function salOpen(bId){
+  const b = barber(bId), g = salOf(bId);
+  return ((b && b.start) || 0) + g.verdient - g.ausgezahlt;
+}
+function salOpenAll(){
+  return barbersOf(S.payouts.map(p=>({b:p.b}))).reduce((s,b)=> s + salOpen(b.id), 0);
+}
+/* Eintrag eines Tages holen oder anlegen. */
+function salEntry(bId, date, anlegen){
+  let p = S.payouts.find(x=> x.d===date && x.b===bId);
+  if(!p && anlegen){ p = {id:uid(), d:date, b:bId, a:0, pd:0, src:'close'}; S.payouts.push(p); }
+  return p;
 }
 
 function totals(list){
@@ -1485,55 +1551,62 @@ function sheetExpense(exp){
   }});
 }
 
-/* ---------- Gehalt für einen Friseur am Tag ---------- */
+/* ---------- Gehalt eines Tages: verdient und ausgezahlt ---------- */
 function sheetSalary(bId, date){
-  let p = S.payouts.find(x=>x.d===date && x.b===bId);
-  const amt = makeAmount(p?p.a:0);
-  let status = p ? p.s : 'paid';
-  const rev = totals(S.entries.filter(e=>e.d===date && e.b===bId)).total;
+  const p   = salEntry(bId, date, false);
+  const rev = totals(S.entries.filter(e=> e.d===date && e.b===bId)).total;
+  const felder = { a: makeAmount(p ? p.a : 0), pd: makeAmount(p ? p.pd : 0) };
+  let aktiv = 'a';
+  /* Offen ohne diesen Tag - daraus ergibt sich, was man zahlen muesste, um alles auszugleichen. */
+  const offenSonst = salOpen(bId) - (p ? p.a - p.pd : 0);
+
   const body = `
-    <div class="hintline" style="text-align:center;margin-bottom:2px">${tr('sal_rev_on', esc(bname(bId)), dateShort(date))} <strong class="num">${eur(rev)}</strong></div>
-    <div class="amt-display" id="ad">${amt.display()}</div>
-    <div class="quick">
-      <button data-q="${Math.round(rev*0.4/500)*500}">40 % (${eur0(Math.round(rev*0.4/500)*500)})</button>
-      <button data-q="${Math.round(rev*0.45/500)*500}">45 % (${eur0(Math.round(rev*0.45/500)*500)})</button>
-      <button data-q="${Math.round(rev*0.5/500)*500}">50 % (${eur0(Math.round(rev*0.5/500)*500)})</button>
-      <button data-q="10000">100 €</button>
+    <div class="hintline" style="text-align:center;margin-bottom:10px">${tr('sal_rev_on', esc(bname(bId)), dateShort(date))} <strong class="num">${eur(rev)}</strong></div>
+    <div class="seg">
+      <button data-f="a" aria-pressed="true">${tr('earned')}</button>
+      <button data-f="pd" aria-pressed="false">${tr('paid_out_l')}</button>
     </div>
+    <div class="amt-display" id="ad"></div>
+    <div class="hintline" id="zus" style="text-align:center;margin:-10px 0 12px"></div>
+    <div class="quick" id="qk"></div>
     ${padHTML()}
-    <div class="field" style="margin-top:14px"><label>${tr('status_l')}</label>
-      <div class="seg" id="st">
-        <button data-s="paid" aria-pressed="${status==='paid'}">${tr('st_paid')}</button>
-        <button data-s="open" aria-pressed="${status==='open'}">${tr('st_open')}</button>
-      </div>
-    </div>
-    <button class="btn primary block" data-save>${tr('save')}</button>
-    ${p?`<button class="btn ghost block" data-del style="margin-top:10px">${tr('remove_entry')}</button>`:''}
-  `;
+    <button class="btn primary block" data-save style="margin-top:14px">${tr('save')}</button>
+    ${p?`<button class="btn danger block apart" data-del>${tr('del_salary')}</button>`:''}`;
+
   openSheet(tr('sh_salary', bname(bId)), body, {onMount(root){
-    const ad = root.querySelector('#ad');
-    const sync = ()=> ad.innerHTML = amt.display();
-    root.querySelectorAll('[data-k]').forEach(b=> b.onclick = ()=>{ amt.press(b.dataset.k); sync(); buzz(6); });
-    root.querySelectorAll('[data-q]').forEach(b=> b.onclick = ()=>{ amt.set(+b.dataset.q); sync(); buzz(6); });
-    root.querySelectorAll('[data-s]').forEach(b=> b.onclick = ()=>{
-      status = b.dataset.s;
-      root.querySelectorAll('[data-s]').forEach(x=>x.setAttribute('aria-pressed', x.dataset.s===status));
-      buzz();
-    });
+    const ad = root.querySelector('#ad'), zus = root.querySelector('#zus'), qk = root.querySelector('#qk');
+    const zeichne = ()=>{
+      ad.innerHTML  = felder[aktiv].display();
+      zus.innerHTML = tr('sal_line', eur(felder.a.cents), eur(felder.pd.cents));
+      root.querySelectorAll('[data-f]').forEach(b=> b.setAttribute('aria-pressed', b.dataset.f===aktiv));
+      const chips = aktiv==='a'
+        ? [0.4,0.45,0.5].map(q=>({v:Math.round(rev*q/500)*500, t:Math.round(q*100)+' %'}))
+        : [{v: offenSonst + felder.a.cents, t: tr('open_l')}, {v:5000, t:''}, {v:10000, t:''}];
+      qk.innerHTML = chips.filter(c=>c.v>0).map(c=>
+        `<button data-q="${c.v}">${c.t?c.t+' · ':''}${eurShort(c.v)}</button>`).join('');
+      qk.querySelectorAll('[data-q]').forEach(b=> b.onclick = ()=>{ felder[aktiv].set(+b.dataset.q); zeichne(); buzz(6); });
+    };
+    root.querySelectorAll('[data-f]').forEach(b=> b.onclick = ()=>{ aktiv = b.dataset.f; zeichne(); buzz(); });
+    root.querySelectorAll('[data-k]').forEach(b=> b.onclick = ()=>{ felder[aktiv].press(b.dataset.k); zeichne(); buzz(6); });
+    zeichne();
+
     root.querySelector('[data-save]').onclick = ()=>{
-      if(amt.cents<=0){ toast(tr('t_enter_amount')); return; }
-      if(p){ p.a = amt.cents; p.s = status; }
-      else S.payouts.push({id:uid(), d:date, b:bId, a:amt.cents, s:status, src:'close'});
-      save(); closeSheet(); render(); toast(status==='paid'?tr('t_sal_paid'):tr('t_sal_open'));
+      const v = felder.a.cents, g = felder.pd.cents;
+      if(v===0 && g===0){
+        if(p){ const i=S.payouts.indexOf(p); S.payouts.splice(i,1); save(); closeSheet(); render();
+               toast(tr('t_removed'), ()=>{ S.payouts.splice(i,0,p); save(); render(); }); return; }
+        toast(tr('t_enter_amount')); return;
+      }
+      const rec = salEntry(bId, date, true);
+      rec.a = v; rec.pd = g;
+      save(); closeSheet(); render(); toast(tr('t_saved'));
     };
     const del = root.querySelector('[data-del]');
     if(del) del.onclick = ()=>{
       const i = S.payouts.indexOf(p);
       if(i < 0) return;
-      const weg = p;
-      S.payouts.splice(i, 1);
-      save(); closeSheet(); render();
-      toast(tr('t_removed'), ()=>{ S.payouts.splice(i, 0, weg); save(); render(); });
+      S.payouts.splice(i, 1); save(); closeSheet(); render();
+      toast(tr('t_removed'), ()=>{ S.payouts.splice(i, 0, p); save(); render(); });
     };
   }});
 }
@@ -1728,18 +1801,15 @@ function backupWarn(){
 /* Was habe ich gemacht, was steht mir zu, was habe ich bekommen, was fehlt noch. */
 function dayCard(bId){
   const t   = totals(entriesOn(ui.date).filter(e=> e.b===bId));
-  const pay = S.payouts.filter(x=> x.d===ui.date && x.b===bId);
-  const ein = sum(pay, x=>x.a);
-  const bez = sum(pay.filter(x=>x.s==='paid'), x=>x.a);
-  const off = ein - bez;
-  const offAlle = sum(S.payouts.filter(x=> x.b===bId && x.s==='open'), x=>x.a);
+  const tag = salOf(bId, [ui.date, ui.date]);
+  const ein = tag.verdient, bez = tag.ausgezahlt;
+  const offAlle = salOpen(bId);
   return `<div class="sec-head"><span class="eyebrow">${tr('my_day')}</span></div>
   <section class="card">
     <div class="kv"><span class="k">${tr('revenue')}</span><span class="v">${eur(t.total)}</span></div>
-    <div class="kv"><span class="k">${tr('sal_entered')}</span><span class="v">${ein?eur(ein):'—'}</span></div>
-    <div class="kv"><span class="k">${tr('of_which_paid')}</span><span class="v" style="color:var(--pos)">${eur(bez)}</span></div>
-    <div class="kv total"><span class="k">${tr('still_open_l')}</span><span class="v"${off?' style="color:var(--open)"':''}>${eur(off)}</span></div>
-    ${offAlle ? `<div class="kv"><span class="k">${tr('open_all_days')}</span><span class="v" style="color:var(--open)">${eur(offAlle)}</span></div>` : ''}
+    <div class="kv"><span class="k">${tr('earned')}</span><span class="v">${ein?eur(ein):'—'}</span></div>
+    <div class="kv"><span class="k">${tr('paid_out_l')}</span><span class="v" style="color:var(--pos)">${eur(bez)}</span></div>
+    <div class="kv total"><span class="k">${tr('open_total_now')}</span><span class="v"${offAlle?' style="color:var(--open)"':''}>${eur(offAlle)}</span></div>
   </section>`;
 }
 
@@ -1797,7 +1867,7 @@ function screenKasse(){
   const exp = S.expenses.filter(x=>x.d===d);
   const expSum = sum(exp,x=>x.a);
   const expBar = sum(exp.filter(x=>x.c!=='Miete'), x=>x.a);   // Miete läuft übers Konto
-  const paidToday = sum(S.payouts.filter(p=>p.d===d && p.s==='paid'), p=>p.a);
+  const paidToday = sum(S.payouts.filter(p=>p.d===d), p=>p.pd);
   const closed = !!S.closes[d];
 
   const perB = barbersOf(dayEntries).map(b=>({b, t: totals(dayEntries.filter(e=>e.b===b.id))}))
@@ -1810,12 +1880,9 @@ function screenKasse(){
     return `<button class="row" data-sal="${b.id}">
       <span class="main">
         <span class="t1">${esc(b.name)}${b.me?` <span class="pill me">${tr('me')}</span>`:''}</span>
-        ${p ? (p.src==='manual' ? `<span class="t2">${tr('src_manual')}</span>` : '')
-            : `<span class="t2">${tr('not_entered')}</span>`}
+        <span class="t2">${p ? tr('sal_line', eur(p.a), eur(p.pd)) : tr('not_entered')}</span>
       </span>
-      ${p?`<span class="pill ${p.s==='paid'?'paid':'open'}">${p.s==='paid'?tr('paid'):tr('open')}</span>`
-        :`<span class="pill act-chip">${tr('sal_enter')}</span>`}
-      ${p?`<span class="amt money">${eur(p.a)}</span>`:''}
+      ${p ? '' : `<span class="pill act-chip">${tr('sal_enter')}</span>`}
     </button>`;
   }).join('');
 
@@ -1874,9 +1941,8 @@ function screenBericht(){
   const exp = S.expenses.filter(x=>inRange(x.d,r));
   const expSum = sum(exp,x=>x.a);
   const pays = S.payouts.filter(p=>inRange(p.d,r));
-  const paid = sum(pays.filter(p=>p.s==='paid'),p=>p.a);
-  const open = sum(pays.filter(p=>p.s==='open'),p=>p.a);
-  const openAll = sum(S.payouts.filter(p=>p.s==='open'),p=>p.a);
+  const paid = sum(pays, p=>p.pd);
+  const openAll = salOpenAll();
   const laenge = (fromISO(r[1]) - fromISO(r[0]))/86400000 + 1;
   const tVor = totals(S.entries.filter(e=> inRange(e.d, [addDays(r[0], -laenge), addDays(r[0], -1)])));
 
@@ -1884,19 +1950,16 @@ function screenBericht(){
     .filter(x=>x.t.count>0).sort((a,b)=>b.t.total-a.t.total);
   const max = Math.max(1, ...perB.map(x=>x.t.total));
 
-  const salRows = S.barbers.map(b=>{
-    const mine = pays.filter(p=>p.b===b.id);
-    const pd = sum(mine.filter(p=>p.s==='paid'),p=>p.a);
-    const op = sum(mine.filter(p=>p.s==='open'),p=>p.a);
-    const opAll = sum(S.payouts.filter(p=>p.b===b.id && p.s==='open'),p=>p.a);
-    if(!pd && !op && !opAll) return '';
+  const salRows = barbersOf(S.payouts.map(x=>({b:x.b}))).map(b=>{
+    const g = salOf(b.id, r);
+    const opAll = salOpen(b.id);
+    if(!g.verdient && !g.ausgezahlt && !opAll) return '';
     return `<div class="brow">
-      <div class="l1"><span class="nm">${esc(b.name)}${b.me?` <span class="pill me">${tr('me')}</span>`:''}</span><span class="vl">${eur(pd+op)}</span></div>
+      <div class="l1"><span class="nm">${esc(b.name)}${b.me?` <span class="pill me">${tr('me')}</span>`:''}</span><span class="vl">${eur(g.verdient)}</span></div>
       <div class="l2" style="margin-top:7px">
-        <span class="pill paid">${I.check} ${tr('x_paid', eur(pd))}</span>
-        ${op?`<button class="pill open" data-openb="${b.id}">${tr('x_open', eur(op))}</button>`:`<span style="font-size:11.5px">${tr('nothing_open')}</span>`}
+        <span class="pill paid">${I.check} ${tr('x_paid', eur(g.ausgezahlt))}</span>
+        ${opAll?`<button class="pill open" data-openb="${b.id}">${tr('x_open', eur(opAll))}</button>`:`<span style="font-size:11.5px">${tr('nothing_open')}</span>`}
       </div>
-      ${opAll?`<div class="l2"><span>${tr('open_all_time')} <strong class="num" style="color:var(--open)">${eur(opAll)}</strong></span></div>`:''}
     </div>`;
   }).join('');
 
@@ -1978,9 +2041,8 @@ function screenMehr(){
     <section class="card"><div class="rows">${verlauf.length? verlauf.map(x=> x.typ==='gehalt' ? `
       <button class="row" data-pay="${x.o.id}">
         <span class="lead">${dateShort(x.o.d).slice(3)}</span>
-        <span class="main"><span class="t1">${esc(bname(x.o.b))}</span><span class="t2">${tr('b_salary')} · ${x.o.s==='paid'?tr('paid'):tr('open')}</span></span>
+        <span class="main"><span class="t1">${esc(bname(x.o.b))}</span><span class="t2">${tr('sal_line', eur(x.o.a), eur(x.o.pd))}</span></span>
         <span class="dotpill karte"><i></i>${tr('b_salary')}</span>
-        <span class="amt money">${eur(x.o.a)}</span>
       </button>` : `
       <button class="row" data-exp="${x.o.id}">
         <span class="lead">${dateShort(x.o.d).slice(3)}</span>
@@ -2081,7 +2143,7 @@ function renderFab(){
     f.querySelector('[data-sal]').onclick = ()=> askClosed(ui.date, ()=> sheetSalary(wer, ui.date));
   } else if(ui.tab==='kasse'){
     const closed = !!S.closes[ui.date];
-    const offenGes = sum(S.payouts.filter(p=> p.s==='open'), p=>p.a);
+    const offenGes = salOpenAll();
     f.innerHTML = `<div class="duo">
       <button class="btn" data-pay>${tr('b_payout')}${offenGes?` · ${eur0(offenGes)}`:''}</button>
       <button class="btn ${closed?'ghost':'primary'}" data-close2>${closed?tr('reopen_day'):tr('close_day')}</button>
@@ -2107,7 +2169,7 @@ function bindView(v){
   v.querySelectorAll('[data-tf]').forEach(b=> b.onclick = ()=>{ ui.teamFilter=b.dataset.tf; render(); });
   v.querySelectorAll('[data-r]').forEach(b=> b.onclick = ()=>{ ui.range=b.dataset.r; render(); });
   v.querySelectorAll('[data-sal]').forEach(b=> b.onclick = ()=> askClosed(ui.date, ()=> sheetSalary(b.dataset.sal, ui.date)));
-  v.querySelectorAll('[data-openb]').forEach(b=> b.onclick = (e)=>{ e.stopPropagation(); sheetOpenSalary(b.dataset.openb); });
+  v.querySelectorAll('[data-openb]').forEach(b=> b.onclick = (e)=>{ e.stopPropagation(); sheetWithdraw(b.dataset.openb); });
   v.querySelectorAll('[data-exp]').forEach(b=> b.onclick = ()=>{
     const x = S.expenses.find(y=>y.id===b.dataset.exp); if(x) sheetExpense(x);
   });
@@ -2117,7 +2179,7 @@ function bindView(v){
     const x = S.barbers.find(y=>y.id===b.dataset.barber); if(x) sheetBarber(x);
   });
   v.querySelectorAll('[data-pay]').forEach(b=> b.onclick = ()=>{
-    const p = S.payouts.find(x=>x.id===b.dataset.pay); if(p) sheetPayoutEdit(p);
+    const p = S.payouts.find(x=>x.id===b.dataset.pay); if(p) sheetSalary(p.b, p.d);
   });
   const bw = v.querySelector('[data-backupnow]'); if(bw) bw.onclick = ()=> doBackup();
   const ps = v.querySelector('[data-persist]'); if(ps) ps.onclick = ()=> askPersist();
@@ -2135,6 +2197,9 @@ function sheetBarber(b){
   const isNew = !b;
   const body = `
     <div class="field"><label>${tr('name')}</label><input type="text" id="nm" value="${b?esc(b.name):''}" placeholder="${tr('name_ph')}" maxlength="24"></div>
+    <div class="field"><label>${tr('start_open')}</label>
+      <input type="text" inputmode="decimal" id="st0" value="${b&&b.start?(b.start/100).toFixed(2).replace('.',','):''}" placeholder="0,00" maxlength="12">
+      <p class="hintline" style="margin:2px 0 0">${tr('start_open_hint')}</p></div>
     ${b&&b.me?`<p class="hintline">${tr('you_are')}</p>`:
       `<button class="btn ghost block" data-me style="margin-bottom:12px">${tr('set_me')}</button>`}
     <button class="btn primary block" data-save>${isNew?tr('sh_add_barber'):tr('save')}</button>
@@ -2149,8 +2214,10 @@ function sheetBarber(b){
     };
     root.querySelector('[data-save]').onclick = ()=>{
       const n = nm.value.trim(); if(!n){ toast(tr('t_enter_name')); return; }
-      if(isNew) S.barbers.push({id:uid(), name:n, me:S.barbers.length===0});
-      else b.name = n;
+      const roh = (root.querySelector('#st0').value || '').replace(/\./g,'').replace(',','.');
+      const st0 = Math.max(0, Math.round((parseFloat(roh) || 0) * 100));
+      if(isNew) S.barbers.push({id:uid(), name:n, me:S.barbers.length===0, start:st0});
+      else { b.name = n; b.start = st0; }
       save(); closeSheet(); render(); toast(tr('t_saved'));
     };
     const del = root.querySelector('[data-del]');
@@ -2168,28 +2235,28 @@ function sheetBarber(b){
 }
 
 /* ---------- manuelle Auszahlung / Auszahlung bearbeiten ---------- */
-/* Verrechnet einen Teilbetrag gegen die offenen Tage, älteste zuerst.
-   Reicht der Betrag für einen Tag nicht, wird dieser Tag geteilt:
-   der gezahlte Teil wird ausgezahlt, der Rest bleibt als eigener Eintrag offen. */
-function payPartial(bId, cents){
-  let rest = cents;
-  const offen = S.payouts.filter(p=>p.b===bId && p.s==='open').sort((a,b)=> a.d.localeCompare(b.d));
-  for(const p of offen){
-    if(rest <= 0) break;
-    if(p.a <= rest){ p.s = 'paid'; rest -= p.a; }
-    else {
-      const bleibt = p.a - rest;
-      p.a = rest; p.s = 'paid';
-      S.payouts.push({id:uid(), d:p.d, b:p.b, a:bleibt, s:'open', src:p.src});
-      rest = 0;
-    }
-  }
-  save();
-  return cents - rest;
+/* ---------- Auszahlen ---------- */
+function sheetPayout(){
+  const offen = barbersOf(S.payouts.map(p=>({b:p.b})))
+    .map(b => ({ b, off: salOpen(b.id) }))
+    .filter(x => x.off > 0)
+    .sort((a,b) => b.off - a.off);
+  if(!offen.length){ toast(tr('nothing_open_now')); buzz(10); return; }
+  if(offen.length === 1) return sheetWithdraw(offen[0].b.id);
+  const body = `<section class="card" style="box-shadow:none"><div class="rows">${offen.map(x=>`
+    <button class="row" data-b="${x.b.id}">
+      <span class="main"><span class="t1">${esc(x.b.name)}${x.b.me?` <span class="pill me">${tr('me')}</span>`:''}</span></span>
+      <span class="pill open">${tr('x_open', eur(x.off))}</span>
+    </button>`).join('')}</div></section>`;
+  openSheet(tr('sh_payout_pick'), body, {onMount(root){
+    root.querySelectorAll('[data-b]').forEach(b=> b.onclick = ()=> sheetWithdraw(b.dataset.b));
+  }});
 }
 
-function sheetPartial(bId){
-  const offen = sum(S.payouts.filter(p=>p.b===bId && p.s==='open'), p=>p.a);
+/* Ein Betrag, der auf den angezeigten Tag als ausgezahlt gebucht wird.
+   Kein Aufteilen mehr - offen ist ein laufender Saldo. */
+function sheetWithdraw(bId){
+  const offen = salOpen(bId);
   const amt = makeAmount(0);
   const chips = [5000, 10000, Math.round(offen/2/500)*500].filter(c=> c>0 && c<offen);
   const body = `
@@ -2200,8 +2267,9 @@ function sheetPartial(bId){
       <button data-q="${offen}">${tr('all_open')} ${eurShort(offen)}</button>
     </div>
     ${padHTML()}
-    <button class="btn primary block" data-save style="margin-top:14px">${tr('save')}</button>`;
-  openSheet(tr('sh_partial', bname(bId)), body, {onMount(root){
+    <p class="hintline" style="margin:12px 2px 0;text-align:center">${tr('withdraw_day', dateShort(ui.date))}</p>
+    <button class="btn primary block" data-save style="margin-top:10px">${tr('save')}</button>`;
+  openSheet(tr('sh_withdraw', bname(bId)), body, {onMount(root){
     const ad = root.querySelector('#ad');
     const sync = ()=> ad.innerHTML = amt.display();
     root.querySelectorAll('[data-k]').forEach(b=> b.onclick = ()=>{ amt.press(b.dataset.k); sync(); buzz(6); });
@@ -2209,88 +2277,11 @@ function sheetPartial(bId){
     root.querySelector('[data-save]').onclick = ()=>{
       if(amt.cents <= 0){ toast(tr('t_enter_amount')); return; }
       if(amt.cents > offen){ toast(tr('max_is_open', eur(offen))); buzz(14); return; }
-      const gezahlt = payPartial(bId, amt.cents);
-      const rest = sum(S.payouts.filter(p=>p.b===bId && p.s==='open'), p=>p.a);
-      closeSheet(); render(); buzz(14);
-      toast(rest ? tr('t_partial', eur(gezahlt), eur(rest)) : tr('t_partial_done', eur(gezahlt)));
-      if(rest) sheetOpenSalary(bId);
-    };
-  }});
-}
-
-/* Aus der Kasse heraus auszahlen. Bei nur einem Betroffenen direkt weiter. */
-function sheetPayout(){
-  const offen = S.barbers
-    .map(b => ({ b, off: sum(S.payouts.filter(p=> p.b===b.id && p.s==='open'), p=>p.a) }))
-    .filter(x => x.off > 0)
-    .sort((a,b) => b.off - a.off);
-  if(!offen.length){ toast(tr('nothing_open_now')); buzz(10); return; }
-  if(offen.length === 1) return sheetOpenSalary(offen[0].b.id);
-  const body = `<section class="card" style="box-shadow:none"><div class="rows">${offen.map(x=>`
-    <button class="row" data-b="${x.b.id}">
-      <span class="main"><span class="t1">${esc(x.b.name)}${x.b.me?` <span class="pill me">${tr('me')}</span>`:''}</span></span>
-      <span class="pill open">${tr('x_open', eur(x.off))}</span>
-    </button>`).join('')}</div></section>`;
-  openSheet(tr('sh_payout_pick'), body, {onMount(root){
-    root.querySelectorAll('[data-b]').forEach(b=> b.onclick = ()=> sheetOpenSalary(b.dataset.b));
-  }});
-}
-
-function sheetOpenSalary(bId){
-  const list = S.payouts.filter(p=>p.b===bId && p.s==='open').sort((a,b)=> a.d.localeCompare(b.d));
-  const total = sum(list, p=>p.a);
-  const body = list.length ? `
-    <div class="amt-display" style="padding:2px 0 16px"><span class="n">${eur(total).replace(' €','')}</span><span class="cur">€</span></div>
-    <button class="btn primary block" data-all>${tr('mark_all_paid')}</button>
-    <button class="btn block" data-part style="margin:10px 0 14px">${tr('partial')}</button>
-    <section class="card" style="box-shadow:none"><div class="rows">${list.map(p=>`
-      <button class="row" data-one="${p.id}">
-        <span class="main"><span class="t1">${dateLabel(p.d)}</span></span>
-        <span class="amt money">${eur(p.a)}</span>
-        <span class="pill act-chip">${tr('st_paid')}</span>
-      </button>`).join('')}</div></section>`
-    : `<p class="hintline">${tr('all_paid')}</p>`;
-  openSheet(tr('sh_open_sal', bname(bId)), body, {onMount(root){
-    const teil = root.querySelector('[data-part]');
-    if(teil) teil.onclick = ()=> sheetPartial(bId);
-    const alle = root.querySelector('[data-all]');
-    if(alle) alle.onclick = ()=>{
-      list.forEach(x=> x.s = 'paid');
-      save(); closeSheet(); render(); toast(tr('t_marked_sum', eur(total)));
-    };
-    root.querySelectorAll('[data-one]').forEach(b=> b.onclick = ()=>{
-      const x = S.payouts.find(y=>y.id===b.dataset.one);
-      if(!x) return;
-      x.s = 'paid'; save(); render(); buzz();
-      toast(tr('t_marked_sum', eur(x.a)));
-      sheetOpenSalary(bId);
-    });
-  }});
-}
-
-function sheetPayoutEdit(p){
-  const body = `
-    <div class="card" style="box-shadow:none;margin-bottom:14px">
-      <div class="kv"><span class="k">${tr('f_barber')}</span><span class="v" style="font-size:14px">${esc(bname(p.b))}</span></div>
-      <div class="kv"><span class="k">${tr('date')}</span><span class="v" style="font-size:14px">${dateShort(p.d)}</span></div>
-      <div class="kv total"><span class="k">${tr('amount_l')}</span><span class="v">${eur(p.a)}</span></div>
-    </div>
-    <div class="field"><label>${tr('status_l')}</label>
-      <div class="seg"><button data-s="paid" aria-pressed="${p.s==='paid'}">${tr('st_paid')}</button><button data-s="open" aria-pressed="${p.s==='open'}">${tr('st_open')}</button></div>
-    </div>
-    <button class="btn danger block" data-del>${tr('del_payout')}</button>`;
-  openSheet(tr('sh_payout_e'), body, {onMount(root){
-    root.querySelectorAll('[data-s]').forEach(b=> b.onclick = ()=>{
-      p.s = b.dataset.s; save();
-      root.querySelectorAll('[data-s]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.s===p.s));
-      render(); toast(p.s==='paid'?tr('t_marked_paid'):tr('t_marked_open'));
-    });
-    root.querySelector('[data-del]').onclick = ()=>{
-      const i = S.payouts.indexOf(p);
-      if(i < 0) return;
-      S.payouts.splice(i, 1);
-      save(); closeSheet(); render();
-      toast(tr('t_deleted'), ()=>{ S.payouts.splice(i, 0, p); save(); render(); });
+      const rec = salEntry(bId, ui.date, true);
+      rec.pd += amt.cents;
+      save(); closeSheet(); render(); buzz(14);
+      const rest = salOpen(bId);
+      toast(rest ? tr('t_withdrawn', eur(amt.cents), eur(rest)) : tr('t_withdrawn_all', eur(amt.cents)));
     };
   }});
 }
@@ -2302,7 +2293,7 @@ function confirmClose(){
   const t = totals(dayEntries);
   const expSum = sum(S.expenses.filter(x=>x.d===d),x=>x.a);
   const pays = S.payouts.filter(p=>p.d===d);
-  const paidSum = sum(pays.filter(p=>p.s==='paid'), p=>p.a);
+  const paidSum = sum(pays, p=>p.pd);
   const missing = S.barbers.filter(b=> dayEntries.some(e=>e.b===b.id) && !pays.some(p=>p.b===b.id));
   const body = `
     <section class="card" style="box-shadow:none">
@@ -2340,7 +2331,10 @@ function exportCSVde(range){
   S.expenses.filter(x=>inR(x.d)).sort((a,b)=>a.d.localeCompare(b.d))
     .forEach(x=> rows.push(['Ausgabe',x.d,'','','-'+(x.a/100).toFixed(2).replace('.',','),'',x.c,'',x.n||'']));
   S.payouts.filter(p=>inR(p.d)).sort((a,b)=>a.d.localeCompare(b.d))
-    .forEach(p=> rows.push(['Gehalt',p.d,'',bname(p.b),(p.a/100).toFixed(2).replace('.',','),'','',p.s==='paid'?'ausgezahlt':'offen','']));
+    .forEach(p=>{
+      if(p.a)  rows.push(['Gehalt verdient',   p.d,'',bname(p.b),(p.a /100).toFixed(2).replace('.',','),'','','','']);
+      if(p.pd) rows.push(['Gehalt ausgezahlt', p.d,'',bname(p.b),(p.pd/100).toFixed(2).replace('.',','),'','','','']);
+    });
   const csv = rows.map(r=>r.map(csvEsc).join(';')).join('\r\n');
   const name = range ? `salon-${range[0]}_bis_${range[1]}.csv` : 'salon-alle-daten.csv';
   sheetText(tr('csv_title'), name, csv, tr('csv_hint', rows.length-1));
@@ -2429,7 +2423,7 @@ function restoreBackup(onCancel){
         <button class="btn ghost block" data-no style="margin-top:10px">${tr('cancel')}</button>`,
         {onMount(r){
           r.querySelector('[data-yes]').onclick = ()=>{
-            S = Object.assign(defaultState(), data);
+            S = migrate(Object.assign(defaultState(), data));
             S.settings = Object.assign({shop:'', onboarded:true}, data.settings||{});
             LANG = LANGS[S.settings.lang] ? S.settings.lang : LANG;
             save(); closeSheet(); ui.date=todayISO(); ui.anchor=todayISO(); applyLang(); render(); toast(tr('t_restored'));
@@ -2580,8 +2574,8 @@ function buildReport(range, label, detailed){
   const pay = S.payouts.filter(p=>inRange(p.d,r)).sort((a,b)=> a.d.localeCompare(b.d));
   const T   = totals(ent);
   const expSum = sum(exp, x=>x.a);
-  const paidSum = sum(pay.filter(p=>p.s==='paid'), p=>p.a);
-  const openSum = sum(pay.filter(p=>p.s==='open'), p=>p.a);
+  const paidSum = sum(pay, p=>p.pd);
+  const earnSum = sum(pay, p=>p.a);
 
   const M = 46, R = PDF_W - M;
   const BRASS = [0.54,0.38,0.09], MUTED = [0.44,0.49,0.47], LIGHT = [0.62,0.66,0.64];
@@ -2687,26 +2681,21 @@ function buildReport(range, label, detailed){
 
   /* Gehalt */
   const perP = barbersOf(pay.map(p=>({b:p.b}))).map(b=>{
-    const mine = pay.filter(p=>p.b===b.id);
-    return { b,
-      paid: sum(mine.filter(p=>p.s==='paid'), p=>p.a),
-      open: sum(mine.filter(p=>p.s==='open'), p=>p.a),
-      openAll: sum(S.payouts.filter(p=>p.b===b.id && p.s==='open'), p=>p.a) };
-  }).filter(x=> x.paid || x.open || x.openAll);
+    const g = salOf(b.id, r);
+    return { b, verdient:g.verdient, paid:g.ausgezahlt, openAll: salOpen(b.id) };
+  }).filter(x=> x.verdient || x.paid || x.openAll);
   if(perP.length){
-    table('GEHALT', [['Friseur',M],['Gebucht',M+300,'right'],['Ausgezahlt',M+400,'right'],['Offen',R,'right']]);
+    table('GEHALT', [['Friseur',M],['Verdient',M+300,'right'],['Ausgezahlt',M+400,'right'],['Offen gesamt',R,'right']]);
     perP.forEach(x=> row([
       [x.b.name + (x.b.me ? ' (ich)' : ''), M],
-      [eur(x.paid + x.open), M+300, 'right'],
+      [eur(x.verdient), M+300, 'right'],
       [eur(x.paid), M+400, 'right'],
-      [eur(x.open), R, 'right', true]
+      [eur(x.openAll), R, 'right', true]
     ]));
-    row([['Gesamt',M,null,true],[eur(paidSum+openSum),M+300,'right',true],
-         [eur(paidSum),M+400,'right',true],[eur(openSum),R,'right',true]],
+    row([['Gesamt',M,null,true],[eur(earnSum),M+300,'right',true],
+         [eur(paidSum),M+400,'right',true],[eur(salOpenAll()),R,'right',true]],
         {fill:[0.945,0.955,0.945], h:18});
     endTable();
-    const offenAlle = sum(S.payouts.filter(p=>p.s==='open'), p=>p.a);
-    if(offenAlle) noteOpen('Offen über alle Zeiträume hinweg', offenAlle, true);
     y += 10;
   }
 
@@ -2730,10 +2719,8 @@ function buildReport(range, label, detailed){
   row([['Gehalt ausgezahlt', M], ['– ' + eur(paidSum), R, 'right']]);
   row([['Verbleibt', M, null, true], [eur(T.total - expSum - paidSum), R, 'right', true]],
       {fill:[0.945,0.955,0.945], h:19, size:10.5});
-  /* Bei "Alle Daten" waere diese Zeile identisch mit der Summe im Gehaltsblock. */
-  const art = periodKindDE(range);
-  if(openSum && art !== 'alle')
-    noteOpen('Noch nicht ausgezahltes Gehalt ' + PERIOD_DE[art], openSum, false);
+  const offenAlle = salOpenAll();
+  if(offenAlle) noteOpen('Offen über alle Zeiträume hinweg', offenAlle, true);
   y += 12;
 
   /* Tagesübersicht */
@@ -2772,24 +2759,6 @@ function buildReport(range, label, detailed){
   footer();
   return doc.build('Kassenbericht ' + label);
 }
-
-/* Welche Art von Zeitraum ist das? Wird für die Formulierung im PDF gebraucht. */
-function periodKindDE(range){
-  if(!range) return 'alle';
-  if(range[0] === range[1]) return 'tag';
-  const a = fromISO(range[0]), b = fromISO(range[1]);
-  const letzterImMonat = new Date(b.getFullYear(), b.getMonth()+1, 0).getDate();
-  if(a.getDate()===1 && a.getMonth()===b.getMonth() && a.getFullYear()===b.getFullYear() && b.getDate()===letzterImMonat)
-    return 'monat';
-  if(a.getMonth()===0 && a.getDate()===1 && b.getMonth()===11 && b.getDate()===31 && a.getFullYear()===b.getFullYear())
-    return 'jahr';
-  if(Math.round((b - a) / 86400000) + 1 === 7) return 'woche';
-  return 'zeitraum';
-}
-const PERIOD_DE = {
-  tag:'an diesem Tag', woche:'in dieser Woche', monat:'in diesem Monat',
-  jahr:'in diesem Jahr', zeitraum:'in diesem Zeitraum'
-};
 
 function rangeLabelDE(range){
   return inGerman(()=>{
