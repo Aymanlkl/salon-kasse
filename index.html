@@ -819,6 +819,8 @@ de:{
  t_withdrawn_all:'{0} ausgezahlt · nichts mehr offen',
  sal_line:'verdient {0} · ausgezahlt {1}', nothing_entered:'nichts eingetragen',
  del_salary:'Gehalt-Eintrag löschen',
+ restore_file:'Datei wählen', restore_text:'Text einfügen',
+ restore_text_hint:'Sicherungstext hier einfügen und auf Einspielen tippen.', t_paste_empty:'Kein Text eingefügt',
  withdraw_day:'Wird auf den {0} gebucht', open_total_now:'Offen gesamt',
  g_fix:'Zum Korrigieren', g_fix_sub:'die letzten Gehalt- und Ausgaben-Einträge · antippen zum Ändern',
  g_fix_empty:'Noch nichts eingetragen', x_all_data:'Alle Daten',
@@ -950,6 +952,8 @@ fr:{
  t_withdrawn_all:'{0} versé · plus rien en attente',
  sal_line:'gagné {0} · versé {1}', nothing_entered:'rien de saisi',
  del_salary:'Supprimer ce salaire',
+ restore_file:'Choisir un fichier', restore_text:'Coller le texte',
+ restore_text_hint:'Colle ici le texte de sauvegarde, puis appuie sur Restaurer.', t_paste_empty:'Aucun texte collé',
  withdraw_day:'Sera enregistré au {0}', open_total_now:'En attente au total',
  g_fix:'À corriger', g_fix_sub:'les dernières écritures de salaire et de dépense · appuyer pour modifier',
  g_fix_empty:'Rien de saisi', x_all_data:'Toutes les données',
@@ -1081,6 +1085,8 @@ ar:{
  t_withdrawn_all:'تم دفع {0} · لم يبقَ شيء',
  sal_line:'المكتسب {0} · المدفوع {1}', nothing_entered:'لم يُسجَّل شيء',
  del_salary:'حذف سجل الأجر',
+ restore_file:'اختيار ملف', restore_text:'لصق النص',
+ restore_text_hint:'الصق نص النسخة الاحتياطية هنا ثم اضغط استعادة.', t_paste_empty:'لم يُلصق أي نص',
  withdraw_day:'يُسجَّل على يوم {0}', open_total_now:'غير المدفوع إجمالاً',
  g_fix:'للتصحيح', g_fix_sub:'آخر سجلات الأجور والمصاريف · اضغط للتعديل',
  g_fix_empty:'لم يُسجَّل شيء بعد', x_all_data:'كل البيانات',
@@ -2404,7 +2410,19 @@ function sheetSetup(first){
   }});
 }
 
+/* Wiederherstellen: aus einer Datei oder aus eingefuegtem Text.
+   Auf dem Handy ist eine Datei oft umstaendlich, Text laesst sich teilen. */
 function restoreBackup(onCancel){
+  const body = `
+    <button class="btn primary block" data-file>${tr('restore_file')}</button>
+    <button class="btn block" data-text style="margin-top:10px">${tr('restore_text')}</button>`;
+  openSheet(tr('backup_restore'), body, {onMount(root){
+    root.querySelector('[data-file]').onclick = ()=> restoreFromFile(onCancel);
+    root.querySelector('[data-text]').onclick = ()=> restoreFromText(onCancel);
+  }});
+}
+
+function restoreFromFile(onCancel){
   const inp = document.createElement('input');
   inp.type='file'; inp.accept='application/json,.json';
   inp.style.cssText='position:fixed;opacity:0;pointer-events:none';
@@ -2414,26 +2432,48 @@ function restoreBackup(onCancel){
     const f = inp.files && inp.files[0]; inp.remove();
     if(!f){ if(onCancel) onCancel(); return; }
     const rd = new FileReader();
-    rd.onload = ()=>{
-      let data;
-      try{ data = JSON.parse(rd.result); }catch(e){ toast(tr('t_not_readable')); if(onCancel) onCancel(); return; }
-      if(!data || !Array.isArray(data.barbers) || !Array.isArray(data.entries)){ toast(tr('t_invalid_backup')); if(onCancel) onCancel(); return; }
-      openSheet(tr('sh_restore_q'), `<p class="hintline">${tr('restore_txt', data.entries.length, (data.expenses||[]).length, (data.payouts||[]).length)}</p>
-        <button class="btn primary block" data-yes style="margin-top:14px">${tr('restore_now')}</button>
-        <button class="btn ghost block" data-no style="margin-top:10px">${tr('cancel')}</button>`,
-        {onMount(r){
-          r.querySelector('[data-yes]').onclick = ()=>{
-            S = migrate(Object.assign(defaultState(), data));
-            S.settings = Object.assign({shop:'', onboarded:true}, data.settings||{});
-            LANG = LANGS[S.settings.lang] ? S.settings.lang : LANG;
-            save(); closeSheet(); ui.date=todayISO(); ui.anchor=todayISO(); applyLang(); render(); toast(tr('t_restored'));
-          };
-          r.querySelector('[data-no]').onclick = ()=>{ closeSheet(); if(onCancel) onCancel(); };
-        }});
-    };
+    rd.onload = ()=> applyBackup(rd.result, onCancel);
     rd.readAsText(f);
   };
   inp.click();
+}
+
+function restoreFromText(onCancel){
+  const body = `
+    <p class="hintline" style="margin:-4px 0 12px">${tr('restore_text_hint')}</p>
+    <div class="field"><textarea id="tx" rows="7" placeholder='{"v":1,…}'
+      style="font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace"></textarea></div>
+    <button class="btn primary block" data-go>${tr('restore_now')}</button>`;
+  openSheet(tr('restore_text'), body, {onMount(root){
+    const tx = root.querySelector('#tx');
+    setTimeout(()=>{ try{ tx.focus(); }catch(e){} }, 300);
+    root.querySelector('[data-go]').onclick = ()=>{
+      const roh = (tx.value || '').trim();
+      if(!roh){ toast(tr('t_paste_empty')); return; }
+      applyBackup(roh, onCancel);
+    };
+  }});
+}
+
+function applyBackup(roh, onCancel){
+  let data;
+  try{ data = JSON.parse(roh); }catch(e){ toast(tr('t_not_readable')); if(onCancel) onCancel(); return; }
+  if(!data || !Array.isArray(data.barbers) || !Array.isArray(data.entries)){
+    toast(tr('t_invalid_backup')); if(onCancel) onCancel(); return;
+  }
+  openSheet(tr('sh_restore_q'), `<p class="hintline">${tr('restore_txt', data.entries.length, (data.expenses||[]).length, (data.payouts||[]).length)}</p>
+    <button class="btn primary block" data-yes style="margin-top:14px">${tr('restore_now')}</button>
+    <button class="btn ghost block" data-no style="margin-top:10px">${tr('cancel')}</button>`,
+    {onMount(r){
+      r.querySelector('[data-yes]').onclick = ()=>{
+        S = migrate(Object.assign(defaultState(), data));
+        S.settings = Object.assign({shop:'', onboarded:true}, data.settings||{});
+        LANG = LANGS[S.settings.lang] ? S.settings.lang : LANG;
+        save(); closeSheet(); ui.date=todayISO(); ui.anchor=todayISO(); applyLang(); render();
+        toast(tr('t_restored'));
+      };
+      r.querySelector('[data-no]').onclick = ()=>{ closeSheet(); if(onCancel) onCancel(); };
+    }});
 }
 
 function loadDemo(){
