@@ -1194,6 +1194,14 @@ function barbersOf(list){
 
 const entriesOn = d => S.entries.filter(e=>e.d===d).sort((a,b)=> b.t.localeCompare(a.t));
 const sum = (arr,f) => arr.reduce((s,x)=>s+f(x),0);
+/* Anteile Bar/Karte. Einzeln gerundet ergeben sie manchmal 99 oder 101 Prozent,
+   deshalb wird der zweite Wert aus dem ersten abgeleitet. */
+function pctPair(t){
+  if(!t.total) return {bar:0, karte:0};
+  const bar = Math.round(t.bar / t.total * 100);
+  return {bar, karte: 100 - bar};
+}
+
 function totals(list){
   return {
     total: sum(list,e=>e.a),
@@ -1596,8 +1604,8 @@ function kpiGrid(t, tVor, ganzerSalon){
     ${kTile('mint', IK.euro, ganzerSalon ? tr('total_revenue') : tr('revenue'), eur(t.total), delta(t.total, tVor.total))}
     ${kTile('lila', IK.users, tr('cust_n'), String(t.count), delta(t.count, tVor.count),
             t.count ? 'ø ' + eur(Math.round(t.total/t.count)) : '')}
-    ${kTile('gold', IK.cash,  tr('bar'), eur(t.bar), null, t.total?Math.round(t.bar/t.total*100)+' %':'0 %')}
-    ${kTile('blau', IK.card,  tr('card'), eur(t.karte), null, t.total?Math.round(t.karte/t.total*100)+' %':'0 %')}
+    ${kTile('gold', IK.cash,  tr('bar'), eur(t.bar), null, pctPair(t).bar + ' %')}
+    ${kTile('blau', IK.card,  tr('card'), eur(t.karte), null, pctPair(t).karte + ' %')}
   </section>`;
 }
 /* Balken der letzten sieben Tage, der gewählte Tag hervorgehoben. */
@@ -1631,8 +1639,8 @@ function ringCard(t){
       <circle cx="50" cy="50" r="30" fill="var(--surface)"/>
     </svg>
     <div class="ring-leg">
-      <div class="leg"><span class="lw"><i style="background:var(--bar)"></i><span class="lt">${tr('bar')} ${Math.round(t.bar/ges*100)} %</span></span><span class="lv money">${eur(t.bar)}</span></div>
-      <div class="leg"><span class="lw"><i style="background:var(--card)"></i><span class="lt">${tr('card')} ${Math.round(t.karte/ges*100)} %</span></span><span class="lv money">${eur(t.karte)}</span></div>
+      <div class="leg"><span class="lw"><i style="background:var(--bar)"></i><span class="lt">${tr('bar')} ${pctPair(t).bar} %</span></span><span class="lv money">${eur(t.bar)}</span></div>
+      <div class="leg"><span class="lw"><i style="background:var(--card)"></i><span class="lt">${tr('card')} ${pctPair(t).karte} %</span></span><span class="lv money">${eur(t.karte)}</span></div>
     </div>
   </section>`;
 }
@@ -2645,8 +2653,8 @@ function buildReport(range, label, detailed){
     doc.text(x, y+18, v, {size:12, bold:true, align});
     if(sub) doc.text(x, y+32, sub, {size:8, color:LIGHT, align});
   };
-  stat(M+236, 'BAR',    eur(T.bar),   T.total ? Math.round(T.bar/T.total*100) + ' %' : '');
-  stat(M+346, 'KARTE',  eur(T.karte), T.total ? Math.round(T.karte/T.total*100) + ' %' : '');
+  stat(M+236, 'BAR',    eur(T.bar),   T.total ? pctPair(T).bar + ' %' : '');
+  stat(M+346, 'KARTE',  eur(T.karte), T.total ? pctPair(T).karte + ' %' : '');
   /* rechtsbündig am Seitenrand, sonst läuft "im Schnitt …" aus dem Blatt */
   stat(R, 'KUNDEN', String(T.count), T.count ? 'im Schnitt ' + eur(Math.round(T.total/T.count)) : '', 'right');
   y += 66;
